@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.text.Font?>
+
+<Pane fx:id="pane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <TextField id="textField" fx:id="textField" layoutX="14.0" layoutY="14.0" onKeyReleased="#textFieldKeyReleaseHandler" prefHeight="26.0" prefWidth="401.0" />
+      <TableView fx:id="itemTable" layoutX="14.0" layoutY="48.0" prefHeight="213.0" prefWidth="566.0">
+        <columns>
+          <TableColumn fx:id="itemColumn" editable="false" prefWidth="187.0" sortable="false" text="Item" />
+          <TableColumn fx:id="unitPriceColumn" editable="false" prefWidth="96.0" sortable="false" text="Unit Price" />
+            <TableColumn fx:id="quantityColumn" editable="false" minWidth="8.0" prefWidth="79.0" sortable="false" text="Quantity" />
+            <TableColumn fx:id="priceColumn" editable="false" prefWidth="203.0" resizable="false" sortable="false" text="Price" />
+        </columns>
+      </TableView>
+      <Label fx:id="subtotalLabel" layoutX="463.0" layoutY="278.0" prefHeight="36.0" prefWidth="117.0" text="\$0.00">
+         <font>
+            <Font size="16.0" />
+         </font>
+      </Label>
+      <Label layoutX="378.0" layoutY="278.0" prefHeight="36.0" prefWidth="76.0" text="Subtotal:">
+         <font>
+            <Font size="16.0" />
+         </font>
+      </Label>
+      <Pane fx:id="cashPane" layoutX="378.0" layoutY="314.0" prefHeight="36.0" prefWidth="200.0" visible="false">
+         <children>
+            <Label fx:id="cash" prefHeight="36.0" prefWidth="76.0" text="Cash:">
+               <font>
+                  <Font size="16.0" />
+               </font>
+            </Label>
+            <Label fx:id="cashLabel" layoutX="83.0" prefHeight="36.0" prefWidth="117.0" text="\$0.00">
+               <font>
+                  <Font size="16.0" />
+               </font>
+            </Label>
+         </children>
+      </Pane>
+      <Pane fx:id="changePane" layoutX="378.0" layoutY="350.0" prefHeight="36.0" prefWidth="200.0" visible="false">
+         <children>
+            <Label fx:id="change" prefHeight="36.0" prefWidth="76.0" text="Change:">
+               <font>
+                  <Font size="16.0" />
+               </font>
+            </Label>
+            <Label fx:id="changeLabel" layoutX="83.0" prefHeight="36.0" prefWidth="117.0" text="\$0.00">
+               <font>
+                  <Font size="16.0" />
+               </font>
+            </Label>
+         </children>
+      </Pane>
+      <Label fx:id="cancelLabel" layoutX="14.0" layoutY="266.0" text="Transaction Cancelled" visible="false">
+         <font>
+            <Font size="19.0" />
+         </font>
+      </Label>
+   </children>
+</Pane>
