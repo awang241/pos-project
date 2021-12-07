@@ -3,16 +3,11 @@ package data;
 import model.Product;
 import model.Transaction;
 
-import javax.sql.DataSource;
 import java.sql.*;
 import java.util.Optional;
 
 public class Persistence {
     private static String dbUrl = "jdbc:ucanaccess:////home/alan/VirtualBox VMs/VM Shared Files/POS/Pos.mdb";
-
-    private static void setDbUrl(String url){
-        dbUrl = url;
-    }
 
     public Persistence() {}
 
@@ -88,7 +83,9 @@ public class Persistence {
             Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
             data = st.executeQuery(queryString);
         }
+
         return data;
+
     }
 
 

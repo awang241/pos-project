@@ -88,6 +88,7 @@ public class FXMLController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         persistence = new Persistence();
+        itemTable.setPlaceholder(new Label(""));
         items = FXCollections.observableArrayList(itemCounts.keySet());
 
         itemColumn.setCellValueFactory(data -> Bindings.createStringBinding(()-> data.getValue().getName()));
@@ -178,6 +179,13 @@ public class FXMLController implements Initializable {
         }
     }
 
+    /**
+     * Saves the current transaction to the database.
+     *
+     * The database will record the transaction, the items in the transaction, including the items' stock levels. If
+     * the transaction is a refund, the subtotal is negative and the stock levels are increased instead.
+     * @param type The payment type of the transaction
+     */
     public void saveTransaction(PaymentType type) {
         Transaction transaction = new Transaction(new HashMap<>(itemCounts), LocalDateTime.now(), type);
         try {
@@ -209,9 +217,7 @@ public class FXMLController implements Initializable {
             completeTransaction(PaymentType.EFTPOS);
         } else if (e.getCode() == CASH_OUT) {
             Optional<Float> cashAmount = showCashInputDialog(0f);
-            if (cashAmount.isPresent()) {
-                itemCounts.put(Product.createCashProduct(cashAmount.get()), 1);
-            }
+            cashAmount.ifPresent(aFloat -> itemCounts.put(Product.createCashProduct(aFloat), 1));
         } else if (e.getCode() == CANCEL) {
             cancelLabel.setVisible(true);
             resetFields();
@@ -244,6 +250,7 @@ public class FXMLController implements Initializable {
             }
         } else if (type == PaymentType.REFUND) {
             cash = -1 * calculateSubtotal();
+            accepted = true;
         } else {
             Optional<Float> cashResponse = showCashInputDialog(calculateSubtotal());
             if (cashResponse.isPresent()) {
@@ -261,6 +268,11 @@ public class FXMLController implements Initializable {
         }
     }
 
+    /**
+     * Displays a dialog for users to input a cash amount.
+     * @param minCash The minimum cash level that is accepted by the dialog.
+     * @return The cash amount input by the user, or an empty optional if the user cancels the dialog.
+     */
     public Optional<Float> showCashInputDialog(float minCash) {
         Dialog<Float> dialog;
         Optional<Float> input = Optional.empty();
