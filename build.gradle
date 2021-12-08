@@ -15,14 +15,16 @@ repositories {
 
 dependencies {
     implementation 'net.sf.ucanaccess:ucanaccess:5.0.1',
-            'com.google.guava:guava:30.1.1-jre'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.1',
+            'com.google.guava:guava:31.0.1-jre'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2',
             'org.mockito:mockito-all:1.10.19'
-    testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.7.1'
+    testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.8.2')
 }
 
 test {
-    useJUnitPlatform()
+    useJUnitPlatform(
+            {includeEngines 'junit-jupiter'}
+    )
 
     maxHeapSize = '1G'
 }
