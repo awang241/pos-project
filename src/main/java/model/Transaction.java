@@ -9,15 +9,24 @@ import java.util.Map;
 
 public class Transaction {
 
-    private Map<Product, Integer> items;
+    private final Map<Product, Integer> items;
     private LocalDateTime dateTime;
-    private PaymentType type;
+    private float payment;
+    private final PaymentType type;
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public Transaction(Map<Product, Integer> items, LocalDateTime dateTime, PaymentType type) {
         this.items = items;
         this.dateTime = dateTime;
         this.type = type;
+        this.payment = this.getTotal();
+    }
+
+    public Transaction(Map<Product, Integer> items, LocalDateTime dateTime, PaymentType type, float payment) {
+        this.items = items;
+        this.dateTime = dateTime;
+        this.type = type;
+        this.payment = payment;
     }
 
     public LocalDateTime getDateTime() {
@@ -60,5 +69,13 @@ public class Transaction {
         } else {
             return items.get(product) >= product.getUnit();
         }
+    }
+
+    public float getPayment() {
+        return payment;
+    }
+
+    public void setPayment(float payment) {
+        this.payment = payment;
     }
 }

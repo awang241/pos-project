@@ -10,17 +10,17 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefHeight="400.0" prefWidth="593.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" onKeyReleased="#textFieldKeyReleaseHandler">
    <top>
-      <TextField id="textField" fx:id="textField" onKeyReleased="#textFieldKeyReleaseHandler" BorderPane.alignment="CENTER" />
+      <TextField id="textField" fx:id="textField" BorderPane.alignment="CENTER" />
    </top>
    <center>
       <TableView fx:id="itemTable" prefHeight="213.0" prefWidth="566.0" BorderPane.alignment="CENTER">
         <columns>
-          <TableColumn fx:id="itemColumn" editable="false" minWidth="-1.0" prefWidth="-1.0" sortable="false" text="Item" />
-          <TableColumn fx:id="unitPriceColumn" editable="false" minWidth="-1.0" prefWidth="-1.0" sortable="false" text="Unit Price" />
-            <TableColumn fx:id="quantityColumn" editable="false" minWidth="-1.0" prefWidth="-1.0" sortable="false" text="Quantity" />
-            <TableColumn fx:id="priceColumn" editable="false" minWidth="-1.0" prefWidth="-1.0" sortable="false" text="Price" />
+          <TableColumn fx:id="itemColumn" editable="false" minWidth="-1.0" prefWidth="-1.0" sortable="false" text="Item" reorderable="false"/>
+          <TableColumn fx:id="unitPriceColumn" editable="false" minWidth="50.0" maxWidth="1000.0" sortable="false" text="Unit Price" reorderable="false"/>
+          <TableColumn fx:id="quantityColumn" editable="false" minWidth="50.0" maxWidth="1000.0" sortable="false" text="Quantity" reorderable="false"/>
+          <TableColumn fx:id="priceColumn" editable="false" minWidth="50.0" maxWidth="1000.0" sortable="false" text="Price" reorderable="false"/>
         </columns>
          <columnResizePolicy>
             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

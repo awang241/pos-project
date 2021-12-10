@@ -1,4 +1,4 @@
-package com.example.print2;
+package controller;
 
 import javax.print.*;
 import javax.print.attribute.HashPrintRequestAttributeSet;
@@ -14,27 +14,24 @@ import java.awt.print.Printable;
 import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.Map;
+
+import data.GlobalData;
+import model.Product;
+import model.Transaction;
 
 public class Print implements Printable {
 
     private static Transaction transaction;
-    private static List<Items> items;
-    private static String DashLine;
-
-    private  static void init(Transaction trans,List<Items> itemlist){
-        transaction=trans;
-        items =itemlist;
-        DashLine="";
-        for(int i=0;i<70;i++){
-            DashLine =DashLine + "-";
-        }
-    }
+    private static Map<Product, Integer> items;
+    private static final String dashLine = "-".repeat(70);
 
 
-     // Used to open till without print
-     public static void Kick() {
-        byte[] open = {27, 112, 48, 55, 121};
+    /**
+     * Sends signal to open the printer-attached till.
+     */
+    public static void Kick() {
+         byte[] open = {27, 112, 48, 55, 121};
          PrintService pservice = PrintServiceLookup.lookupDefaultPrintService();
          DocPrintJob job = pservice.createPrintJob();
          DocFlavor flavor = DocFlavor.BYTE_ARRAY.AUTOSENSE;
@@ -47,19 +44,28 @@ public class Print implements Printable {
          }
     }
 
-
-    public static void printSheet(Transaction trans,List<Items> itemList) {
-        init( trans,itemList);
+    /**
+     * ??
+     * @param trans     Transaction to be printed
+     */
+    public static void printSheet(Transaction trans) {
+        int X_OFFSET = 10;
+        int Y_OFFSET = 10;
+        int PAGE_WIDTH = 200;
+        int PAGE_BASE_HEIGHT = 200;
+        int PAGE_ROW_HEIGHT = 10;
+        transaction = trans;
+        items = trans.getItems();
         Book book = new Book();
         // set to vertical
         PageFormat pf = new PageFormat();
         pf.setOrientation (PageFormat.PORTRAIT);
 
         Paper p = new Paper();
-        int length = printSize (itemList);
+        int height = PAGE_BASE_HEIGHT + PAGE_ROW_HEIGHT * items.size();
 
-        p.setSize (200, length);
-        p.setImageableArea (10, 10, 190, length);
+        p.setSize (PAGE_WIDTH, height);
+        p.setImageableArea (X_OFFSET, Y_OFFSET, PAGE_WIDTH - X_OFFSET, height - Y_OFFSET);
         pf.setPaper(p);
 
         book.append(new Print(), pf);
@@ -74,15 +80,6 @@ public class Print implements Printable {
         }
     }
 
-    private static Integer printSize(List<Items> itemList) {
-        // The value-added parameter is 200, increasing the number of rows requires increasing the height
-        int height = 200;
-        if (itemList.size() > 0) {
-            height += itemList.size()*10;
-        }
-		return height;
-    }
-
     @Override
     public int print(Graphics graphics, PageFormat pageFormat, int pageIndex) throws PrinterException {
         try {
@@ -92,8 +89,8 @@ public class Print implements Printable {
             g2d.setColor(Color.black);
             // Print starting point coordinates
             if (pageIndex == 0) {
-                double x = pageFormat.getImageableX();
-                double y = pageFormat.getImageableY() + 10;
+                float x = (float) pageFormat.getImageableX();
+                float y = (float) (pageFormat.getImageableY() + 10);
                 // Set the printing font (font name, style and dot size) (the font name can be a physical or logical name)
                 Font fontTitle = new Font("   ", Font.BOLD, 16);
                 g2d.setFont(fontTitle); // Set font
@@ -116,18 +113,17 @@ public class Print implements Printable {
                 g2d.drawString("Price", (float) x + 130, (float) y);
                 g2d.drawString("$", (float) x + 165, (float) y);
                 y += fontContent.getSize2D() + 1;
-                g2d.drawString(DashLine, (float) x, (float) y);
+                g2d.drawString(dashLine, (float) x, (float) y);
                 y += fontContent.getSize2D() + 4;
                 double SubTotal = 0.0;
 
-                for (int i = 0; i < items.size(); i++) {
-                    g2d.drawString( items.get(i).getProduct(), (float) x, (float) y);
-                    double lineTotal=0.0;
-                    lineTotal=items.get(i).getCount()*items.get(i).getPrice();
+                for (Product product: items.keySet()) {
+                    g2d.drawString( product.getName(), (float) x, (float) y);
+                    double lineTotal = items.get(product) * product.getPrice();
                     SubTotal+=lineTotal;
-                    g2d.drawString(""+(items.get(i).getCount()), (float) x + 110, (float) y);
-                    g2d.drawString(""+items.get(i).getPrice(), (float) x + 130, (float) y);
-                    g2d.drawString(""+lineTotal, (float) x + 165, (float) y);
+                    g2d.drawString("" + items.get(product), (float) x + 110, (float) y);
+                    g2d.drawString("" + product.getPrice(), (float) x + 130, (float) y);
+                    g2d.drawString("" + lineTotal, (float) x + 165, (float) y);
                     y += fontContent.getSize2D() + 2;
                 }
                 y += fontContent.getSize2D() + 8;
@@ -138,17 +134,15 @@ public class Print implements Printable {
                 g2d.drawString("$"+transaction.getPayment(), (float) x+158, (float) y);
                 y += fontContent.getSize2D() + 4;
                 g2d.drawString("Change:", (float) x, (float) y);
-                g2d.drawString("$"+(transaction.getPayment()-SubTotal), (float) x+158, (float) y);
+                g2d.drawString("$"+(transaction.getPayment() - SubTotal), (float) x+158, (float) y);
                 y += fontContent.getSize2D() + 2;
 
-                g2d.drawString(DashLine, (float) x, (float) y);
+                g2d.drawString(dashLine, (float) x, (float) y);
                 y += fontContent.getSize2D() + 2;
-                g2d.drawString(transaction.getID() + "", (float) x, (float) y);
 
                 DateTimeFormatter format = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
                 String formatDateTime = transaction.getDateTime().format(format);
-
-                g2d.drawString( formatDateTime, (float) x+100, (float) y);
+                g2d.drawString( formatDateTime, (float) x, (float) y);
 
                 y += fontContent.getSize2D() + 8;
                 g2d.drawString ("GST Included", (float) x, (float) y);

@@ -48,9 +48,6 @@ public class FXMLController implements Initializable {
     private TextField textField;
 
     @FXML
-    private Pane pane;
-
-    @FXML
     private TableView<Product> itemTable;
 
     @FXML
@@ -90,6 +87,9 @@ public class FXMLController implements Initializable {
         persistence = new Persistence();
         itemTable.setPlaceholder(new Label(""));
         items = FXCollections.observableArrayList(itemCounts.keySet());
+
+        itemTable.setMouseTransparent(true);
+        itemTable.setFocusTraversable(false);
 
         itemColumn.setCellValueFactory(data -> Bindings.createStringBinding(()-> data.getValue().getName()));
 
@@ -218,9 +218,14 @@ public class FXMLController implements Initializable {
         } else if (e.getCode() == CASH_OUT) {
             Optional<Float> cashAmount = showCashInputDialog(0f);
             cashAmount.ifPresent(aFloat -> itemCounts.put(Product.createCashProduct(aFloat), 1));
-        } else if (e.getCode() == CANCEL) {
+        } else if (e.getCode() == CANCEL && !itemCounts.isEmpty()) {
             cancelLabel.setVisible(true);
             resetFields();
+        } else if (e.getCode() == TILL) {
+            Print.Kick();
+        } else if (e.getCode() == PRINT) {
+            Optional<Transaction> transaction = persistence.findLastInsertedTransaction();
+            transaction.ifPresent(t -> Print.printSheet(t));
         } else if (e.getCode() == UNCODED) {
             Optional<Float> cash = showCashInputDialog(0.01f);
             if (cash.isPresent()) {
@@ -236,6 +241,10 @@ public class FXMLController implements Initializable {
         }
     }
 
+    /**
+     * Saves the current transaction to the database
+     * @param type
+     */
     public void completeTransaction(PaymentType type) {
         boolean accepted = false;
         float cash = 0f;
