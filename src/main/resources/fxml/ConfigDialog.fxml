@@ -1,45 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.text.Font?>
 
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="203.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.dialog.ConfigDialogController">
+<AnchorPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.dialog.ConfigDialogController">
    <children>
-      <TextField layoutX="181.0" layoutY="103.0" prefHeight="25.0" prefWidth="205.0" />
-      <TextField layoutX="152.0" layoutY="135.0" prefHeight="25.0" prefWidth="194.0" />
-      <Button layoutX="355.0" layoutY="135.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="31.0" text="..." />
-      <TextField layoutX="181.0" layoutY="72.0" prefHeight="25.0" prefWidth="205.0" />
-      <TextField layoutX="181.0" layoutY="41.0" prefHeight="25.0" prefWidth="205.0" />
-      <TextField layoutX="181.0" layoutY="11.0" prefHeight="25.0" prefWidth="205.0" />
-      <Label layoutX="14.0" layoutY="11.0" prefHeight="17.0" prefWidth="99.0" text="Shop Name">
+      <GridPane hgap="4.0" vgap="4.0" AnchorPane.bottomAnchor="41.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
+        <columnConstraints>
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="194.0" minWidth="10.0" prefWidth="172.0" />
+          <ColumnConstraints hgrow="SOMETIMES" maxWidth="228.0" minWidth="10.0" prefWidth="228.0" />
+            <ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308" minWidth="10.0" />
+        </columnConstraints>
+        <rowConstraints>
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+          <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+          <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+          <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+         <children>
+            <TextField fx:id="gstField" prefHeight="25.0" prefWidth="205.0" GridPane.columnIndex="1" GridPane.columnSpan="2147483647" GridPane.rowIndex="4" />
+            <TextField fx:id="phoneField" prefHeight="25.0" prefWidth="205.0" GridPane.columnIndex="1" GridPane.columnSpan="2147483647" GridPane.rowIndex="3" />
+            <TextField fx:id="nameField" prefHeight="25.0" prefWidth="205.0" GridPane.columnIndex="1" GridPane.columnSpan="2147483647" />
+            <Button fx:id="pickDBButton" mnemonicParsing="false" onAction="#selectDBFile" prefHeight="25.0" prefWidth="31.0" text="..." GridPane.columnIndex="2" GridPane.rowIndex="5" />
+            <TextField fx:id="dbField" prefHeight="25.0" prefWidth="205.0" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+            <Label prefHeight="17.0" prefWidth="99.0" text="Shop Name">
+               <font>
+                  <Font size="16.0" />
+               </font>
+            </Label>
+            <Label prefHeight="25.0" prefWidth="150.0" text="Address" GridPane.rowIndex="1">
+               <font>
+                  <Font size="16.0" />
+               </font>
+            </Label>
+            <Label prefHeight="25.0" prefWidth="150.0" text="Phone Number" GridPane.rowIndex="3">
+               <font>
+                  <Font size="16.0" />
+               </font>
+            </Label>
+            <Label prefHeight="25.0" prefWidth="150.0" text="GST Number" GridPane.rowIndex="4">
+               <font>
+                  <Font size="16.0" />
+               </font>
+            </Label>
+            <Label prefHeight="25.0" prefWidth="131.0" text="Access file (.mdb)" GridPane.rowIndex="5">
+               <font>
+                  <Font size="16.0" />
+               </font>
+            </Label>
+            <TextArea fx:id="addressArea" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="1" GridPane.rowSpan="2" />
+         </children>
+         <padding>
+            <Insets bottom="3.0" left="3.0" right="3.0" top="3.0" />
+         </padding>
+      </GridPane>
+      <Button fx:id="okButton" alignment="BOTTOM_RIGHT" mnemonicParsing="false" onAction="#submit" text="OK" AnchorPane.bottomAnchor="10.0" AnchorPane.rightAnchor="12.0" />
+      <Label fx:id="warningLabel" layoutX="14.0" layoutY="234.0" text="Please fill in all fields" textFill="RED" visible="false" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0">
          <font>
-            <Font size="16.0" />
+            <Font size="14.0" />
          </font>
       </Label>
-      <Label layoutX="14.0" layoutY="41.0" prefHeight="25.0" prefWidth="150.0" text="Address">
-         <font>
-            <Font size="16.0" />
-         </font>
-      </Label>
-      <Label layoutX="14.0" layoutY="71.0" prefHeight="25.0" prefWidth="150.0" text="Phone Number">
-         <font>
-            <Font size="16.0" />
-         </font>
-      </Label>
-      <Label layoutX="14.0" layoutY="103.0" prefHeight="25.0" prefWidth="150.0" text="GST Number">
-         <font>
-            <Font size="16.0" />
-         </font>
-      </Label>
-      <Label layoutX="14.0" layoutY="135.0" prefHeight="25.0" prefWidth="131.0" text="Access file (.mdb)">
-         <font>
-            <Font size="16.0" />
-         </font>
-      </Label>
-      <Button layoutX="337.0" layoutY="166.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="49.0" text="OK" />
    </children>
-</Pane>
+   <padding>
+      <Insets top="8.0" />
+   </padding>
+</AnchorPane>

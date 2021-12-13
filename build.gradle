@@ -29,8 +29,22 @@ test {
     maxHeapSize = '1G'
 }
 
+application {
+    mainClass = 'AppRunner'
+}
+
+jar {
+    duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
+    manifest {
+        attributes 'Main-Class': 'AppRunner'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
 javafx {
-    version "16"
+    version "17"
     modules = ['javafx.controls', 'javafx.fxml']
 }
 

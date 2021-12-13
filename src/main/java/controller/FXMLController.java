@@ -34,37 +34,30 @@ public class FXMLController implements Initializable {
     private static final KeyCode PRINT = KeyCode.F5;
     private static final KeyCode TILL = KeyCode.F6;
     private static final KeyCode CANCEL = KeyCode.F7;
-    private static final KeyCode UNCODED = KeyCode.F10;
-    private static final KeyCode DELETE = KeyCode.F9;
     private static final KeyCode REFUND = KeyCode.F8;
+    private static final KeyCode DELETE = KeyCode.F9;
+    private static final KeyCode UNCODED = KeyCode.F10;
     private static final KeyCode HOTKEY_1 = KeyCode.F12;
 
-    @FXML Pane cashPane;
-    @FXML Label cashLabel;
+    @FXML Pane paymentPane;
+    @FXML Label paymentLabel;
+    @FXML private Label typeLabel;
     @FXML Pane changePane;
     @FXML Label changeLabel;
-
     @FXML
     private TextField textField;
-
     @FXML
     private TableView<Product> itemTable;
-
     @FXML
     private TableColumn<Product, String> itemColumn;
-
     @FXML
-    private TableColumn<Product, Float> unitPriceColumn;
-
+    private TableColumn<Product, String> unitPriceColumn;
     @FXML
     private TableColumn<Product, Integer> quantityColumn;
-
     @FXML
-    private TableColumn<Product, Number> priceColumn;
-
+    private TableColumn<Product, String> priceColumn;
     @FXML
     private Label subtotalLabel;
-
     @FXML
     private Label cancelLabel;
 
@@ -93,14 +86,18 @@ public class FXMLController implements Initializable {
 
         itemColumn.setCellValueFactory(data -> Bindings.createStringBinding(()-> data.getValue().getName()));
 
-        unitPriceColumn.setCellValueFactory(data -> Bindings.createFloatBinding(()->
-                isDiscounted(data.getValue()) ? data.getValue().getDrp(): data.getValue().getPrice(),
-                itemCounts).asObject());
+        unitPriceColumn.setCellValueFactory(data -> Bindings.createStringBinding(()-> {
+                float price = isDiscounted(data.getValue()) ? data.getValue().getDrp(): data.getValue().getPrice();
+                return String.format(CASH_TEMPLATE, price);
+            }, itemCounts));
 
         quantityColumn.setCellValueFactory(cellData -> Bindings.valueAt(itemCounts, cellData.getValue()));
 
-        priceColumn.setCellValueFactory(data -> Bindings.floatValueAt(itemCounts,
-                data.getValue()).multiply(isDiscounted(data.getValue())? data.getValue().getDrp(): data.getValue().getPrice()));
+        priceColumn.setCellValueFactory(data -> Bindings.createStringBinding(()->{
+                Product product = data.getValue();
+                float price = isDiscounted(product) ? product.getDrp(): product.getPrice();
+                return String.format(CASH_TEMPLATE, price * itemCounts.get(product));
+            },itemCounts));
 
         itemCounts.addListener((MapChangeListener<Product,Integer>) change -> {
             boolean removed = change.wasRemoved();
@@ -110,7 +107,7 @@ public class FXMLController implements Initializable {
                 } else {
                     items.add(change.getKey());
                     cancelLabel.setVisible(false);
-                    cashPane.setVisible(false);
+                    paymentPane.setVisible(false);
                     changePane.setVisible(false);
                 }
             }
@@ -153,14 +150,14 @@ public class FXMLController implements Initializable {
     public void addItemByBarcode(String barcode){
         try {
             Optional<Product> result = persistence.findProductByBarcode(barcode);
-            if (!result.isPresent()) {
+            if (result.isEmpty()) {
                 throw new IllegalArgumentException("No product with that barcode exists");
             }
             Product product = result.get();
             int quantity = product.isCarton() ? product.getUnit(): 1;
 
             if (itemCounts.isEmpty()) {
-                cashPane.setVisible(false);
+                paymentPane.setVisible(false);
                 changePane.setVisible(false);
             }
 
@@ -170,11 +167,9 @@ public class FXMLController implements Initializable {
                 itemCounts.put(product, quantity);
             }
 
-            cashPane.setVisible(false);
+            paymentPane.setVisible(false);
             changePane.setVisible(false);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (IllegalArgumentException e) {
+        } catch (SQLException | IllegalArgumentException e) {
             e.printStackTrace();
         }
     }
@@ -186,8 +181,8 @@ public class FXMLController implements Initializable {
      * the transaction is a refund, the subtotal is negative and the stock levels are increased instead.
      * @param type The payment type of the transaction
      */
-    public void saveTransaction(PaymentType type) {
-        Transaction transaction = new Transaction(new HashMap<>(itemCounts), LocalDateTime.now(), type);
+    public void saveTransaction(PaymentType type, float payment) {
+        Transaction transaction = new Transaction(new HashMap<>(itemCounts), LocalDateTime.now(), type, payment);
         try {
             persistence.saveTransaction(transaction);
             for (Map.Entry<Product, Integer> item: itemCounts.entrySet()) {
@@ -212,7 +207,9 @@ public class FXMLController implements Initializable {
             addItemByBarcode(textField.getText());
             textField.setText("");
         } else if (e.getCode() == CASH && !itemCounts.isEmpty()){
-            completeTransaction(PaymentType.CASH);
+            if (completeTransaction(PaymentType.CASH)) {
+                Print.Kick();
+            };
         } else if (e.getCode() == EFTPOS && !itemCounts.isEmpty()) {
             completeTransaction(PaymentType.EFTPOS);
         } else if (e.getCode() == CASH_OUT) {
@@ -225,7 +222,7 @@ public class FXMLController implements Initializable {
             Print.Kick();
         } else if (e.getCode() == PRINT) {
             Optional<Transaction> transaction = persistence.findLastInsertedTransaction();
-            transaction.ifPresent(t -> Print.printSheet(t));
+            transaction.ifPresent(Print::printSheet);
         } else if (e.getCode() == UNCODED) {
             Optional<Float> cash = showCashInputDialog(0.01f);
             if (cash.isPresent()) {
@@ -242,39 +239,45 @@ public class FXMLController implements Initializable {
     }
 
     /**
-     * Saves the current transaction to the database
+     * Concludes the transaction and complete
      * @param type
      */
-    public void completeTransaction(PaymentType type) {
+    public boolean completeTransaction(PaymentType type) {
+        float payment = 0f;
         boolean accepted = false;
-        float cash = 0f;
         if (type == PaymentType.EFTPOS || type == PaymentType.CHEQUE) {
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
             dialog.getDialogPane().setContentText("Waiting for EFTPOS transaction");
             Optional<ButtonType> buttonType = dialog.showAndWait();
             if (buttonType.isPresent() && ButtonType.OK.equals(buttonType.get())) {
+                payment = calculateSubtotal();
                 accepted = true;
-                cash = calculateSubtotal();
             }
         } else if (type == PaymentType.REFUND) {
-            cash = -1 * calculateSubtotal();
+            payment = calculateSubtotal();
             accepted = true;
-        } else {
+        } else if (type == PaymentType.CASH) {
             Optional<Float> cashResponse = showCashInputDialog(calculateSubtotal());
             if (cashResponse.isPresent()) {
+                payment = cashResponse.get();
                 accepted = true;
-                cash = cashResponse.get();
             }
         }
+
         if (accepted) {
-            cashPane.setVisible(true);
-            changePane.setVisible(true);
-            cashLabel.setText(String.format(CASH_TEMPLATE, cash));
-            changeLabel.setText(String.format(CASH_TEMPLATE, cash - calculateSubtotal()));
-            saveTransaction(type);
+            paymentLabel.setText(String.format(CASH_TEMPLATE, payment));
+            typeLabel.setText(type.toString());
+            paymentPane.setVisible(true);
+            if (type != PaymentType.REFUND) {
+                changePane.setVisible(true);
+                changeLabel.setText(String.format(CASH_TEMPLATE, payment - calculateSubtotal()));
+            }
+            saveTransaction(type, payment);
             resetFields();
         }
+        return accepted;
+
     }
 
     /**

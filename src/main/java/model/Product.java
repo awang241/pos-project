@@ -3,6 +3,8 @@ package model;
 import java.util.Objects;
 
 public class Product {
+    public static final String CASH_OUT = "Cash Out";
+    public static final String UNCODED = "Uncoded Product ";
     private final String name;
     private float price;
     private float drp;
@@ -20,11 +22,11 @@ public class Product {
     }
 
     public static Product createCashProduct(float amount) {
-        return new Product("Cash Out", amount, amount, 0, 0, false);
+        return new Product(CASH_OUT, amount, amount, 0, 0, false);
     }
 
-    public static Product createUncodedProduct(int uncodedCount, float price) {
-        return new Product(String.format("Uncoded Product %d", uncodedCount), price, price, 0, 0, false);
+    public static Product createUncodedProduct(int index, float price) {
+        return new Product(String.format(UNCODED + "%d", index), price, price, 0, 0, false);
     }
 
     public String getName() {

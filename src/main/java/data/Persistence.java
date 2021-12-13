@@ -13,9 +13,11 @@ import java.util.Map;
 import java.util.Optional;
 
 public class Persistence {
-    public static String dbUrl = "jdbc:ucanaccess://" + System.getProperty("user.dir") + "\\Pos.mdb";
+    private static String dbUrl = "jdbc:ucanaccess://" + System.getProperty("user.dir") + "\\Pos.mdb";
 
-    public Persistence() {}
+    public Persistence() {
+        dbUrl = "jdbc:ucanaccess://" + GlobalData.getDbUrl();
+    }
 
     public Optional<Product> findProductByBarcode(String barcode) throws SQLException{
         String queryString = "Select * from Product where BarCode=? or BarCode2=?";
@@ -74,17 +76,26 @@ public class Persistence {
             PaymentType type = PaymentType.fromString(typeString);
             statement.close();
 
-            queryString = "SELECT Product.Product, RP, Unit, BarCode, DRP, Stock, BarCode2, Qty FROM Product INNER JOIN" +
+            queryString = "SELECT RP, Unit, DRP, Stock, Qty, T.Price, T.Product FROM Product RIGHT JOIN" +
                     " (SELECT * FROM TransactionItem WHERE TransactionID = ?) T ON T.Product = Product.Product";
             statement = conn.prepareStatement(queryString);
             statement.setInt(1, transactionId);
             results = statement.executeQuery();
             Map<Product, Integer> items = new HashMap<>();
+            int uncodedIndex = 1;
             while (results.next()) {
-                Product product = new Product(results.getString("Product"), results.getFloat("RP"),
-                        results.getFloat("DRP"), results.getInt("Unit"),
-                        results.getInt("Stock"),false);
+                String name = results.getString("Product");
+                Product product;
                 int quantity = results.getInt("Qty");
+                if (name.matches(Product.UNCODED + "\\d*")) {
+                    product = Product.createUncodedProduct(uncodedIndex, results.getFloat("Price"));
+                    uncodedIndex += 1;
+                } else if (name.equals(Product.CASH_OUT)){
+                    product = Product.createCashProduct(results.getFloat("Price"));
+                } else {
+                    product = new Product(name, results.getFloat("RP"), results.getFloat("DRP"),
+                            results.getInt("Unit"), results.getInt("Stock"),false);
+                }
                 items.put(product, quantity);
             }
             statement.close();
@@ -103,9 +114,10 @@ public class Persistence {
                 PreparedStatement transactionSt = connection.prepareStatement(transactionQuery, Statement.RETURN_GENERATED_KEYS);
                 PreparedStatement itemSt = connection.prepareStatement(itemQuery)){
             Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
+            int refundMultiplier = transaction.getType() == PaymentType.REFUND ? -1: 1;
             transactionSt.setDate(1, Date.valueOf(transaction.getDateTime().toLocalDate()));
             transactionSt.setTime(2, Time.valueOf(transaction.getDateTime().toLocalTime()));
-            transactionSt.setFloat(3, transaction.getPayment());
+            transactionSt.setFloat(3, transaction.getPayment() * refundMultiplier);
             transactionSt.setString(4, transaction.getType().toString());
             transactionSt.setString(5, transaction.isComplete() ? "S": "N");
             transactionSt.executeUpdate();

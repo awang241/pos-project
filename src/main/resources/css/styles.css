@@ -1,3 +1,7 @@
 .label {
     -fx-text-fill: black;
 }
+
+.table-view {
+    -fx-font-size:15px;
+}

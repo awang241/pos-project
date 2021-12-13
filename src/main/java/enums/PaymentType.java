@@ -7,7 +7,7 @@ public enum PaymentType {
     NONE(""),
     REFUND("REFUND");
 
-    private String name;
+    private final String name;
 
     PaymentType(String name) {
         this.name = name;
