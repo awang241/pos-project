@@ -37,6 +37,7 @@ public class FXMLController implements Initializable {
     private static final KeyCode REFUND = KeyCode.F8;
     private static final KeyCode DELETE = KeyCode.F9;
     private static final KeyCode UNCODED = KeyCode.F10;
+    private static final KeyCode ADD_STOCK = KeyCode.F11;
     private static final KeyCode HOTKEY_1 = KeyCode.F12;
 
     @FXML Pane paymentPane;
@@ -65,7 +66,7 @@ public class FXMLController implements Initializable {
 
     private boolean keepOldSubtotal = false;
 
-    private ObservableMap<Product, Integer> itemCounts = FXCollections.observableHashMap();
+    private final ObservableMap<Product, Integer> itemCounts = FXCollections.observableHashMap();
 
     private ObservableList<Product> items;
 
@@ -209,7 +210,7 @@ public class FXMLController implements Initializable {
         } else if (e.getCode() == CASH && !itemCounts.isEmpty()){
             if (completeTransaction(PaymentType.CASH)) {
                 Print.Kick();
-            };
+            }
         } else if (e.getCode() == EFTPOS && !itemCounts.isEmpty()) {
             completeTransaction(PaymentType.EFTPOS);
         } else if (e.getCode() == CASH_OUT) {
@@ -241,6 +242,7 @@ public class FXMLController implements Initializable {
     /**
      * Concludes the transaction and complete
      * @param type
+     * @return true if the transaction was completed successfully; false otherwise
      */
     public boolean completeTransaction(PaymentType type) {
         float payment = 0f;

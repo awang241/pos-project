@@ -107,7 +107,7 @@ public class Persistence {
         return Optional.empty();
     }
 
-    public int saveTransaction(Transaction transaction) {
+    public boolean saveTransaction(Transaction transaction) {
         String transactionQuery = "INSERT INTO Transactions (Date, Time, Payment, PaymentMethod, Type) VALUES (?, ?, ?, ?, ?)";
         String itemQuery = "INSERT INTO TransactionItem (TransactionID, Product, Qty, Price) VALUES (?, ?, ?, ?)";
         try (Connection connection = DriverManager.getConnection(dbUrl);
@@ -134,10 +134,10 @@ public class Persistence {
                 itemSt.setFloat(4, product.getPrice());
                 itemSt.executeUpdate();
             }
-            return 0;
+            return true;
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-        return -1;
+        return false;
     }
 }

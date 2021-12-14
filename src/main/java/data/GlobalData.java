@@ -50,15 +50,19 @@ public class GlobalData {
     }
 
     public static void createShopDetails(String shopAddress, String shopTelNo, String GSTNo, String shopName, String dbUrl) throws IOException {
-        String text = String.format("%s\n%s\n%s\n%s\n%s", shopAddress, shopTelNo, GSTNo, shopName, dbUrl);
-        if (shopDataFileExists()) {
-            File fOld = new File(FILEPATH.toString());
-            if (!(fOld.delete())) {
-                throw new IOException("A");
+        String text = String.format("%s\n%s\n%s\n%s\n%s",shopName, shopAddress, shopTelNo, GSTNo, dbUrl);
+        File dataFile = new File(FILEPATH.toString());
+        if (!dataFile.createNewFile()) {
+            if (!(dataFile.delete())) {
+                throw new IOException("Error deleting old data file.");
+            }
+
+            if (!dataFile.createNewFile()) {
+                throw new IOException("Error creating data file.");
             }
         }
-        File dataFile = new File(FILEPATH.toString());
-        dataFile.createNewFile();
+
+
         try (FileWriter fw = new FileWriter(dataFile)){
             fw.write(text);
         }
