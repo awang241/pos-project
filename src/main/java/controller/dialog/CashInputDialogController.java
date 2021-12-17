@@ -10,17 +10,19 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URL;
 import java.util.ResourceBundle;
 
 public class CashInputDialogController implements Initializable {
 
     private static final int MAX_CASH_IN_CENTS = 10000000;
-    private static final float CENTS_TO_DOLLARS_FACTOR = 100f;
+    private static final BigDecimal CENTS_TO_DOLLARS_FACTOR = new BigDecimal(100);
     private int minCashInCents = 0;
 
     @FXML
-    private Dialog<Float> dialog;
+    private Dialog<BigDecimal> dialog;
 
     @FXML
     private TextInputControl cashInput;
@@ -59,11 +61,12 @@ public class CashInputDialogController implements Initializable {
         }
     }
 
-    public Float returnCashAmount(ButtonType type) {
-        return type.equals(ButtonType.OK) ? cashAmount.get() / CENTS_TO_DOLLARS_FACTOR: null;
+    public BigDecimal returnCashAmount(ButtonType type) {
+        BigDecimal amount = new BigDecimal(cashAmount.get());
+        return type.equals(ButtonType.OK) ? amount.divide(CENTS_TO_DOLLARS_FACTOR, 2, RoundingMode.DOWN): null;
     }
 
-    public void setMinCashInCents(float min) {
-        minCashInCents = (int) (CENTS_TO_DOLLARS_FACTOR * min);
+    public void setMinCash(BigDecimal min) {
+        minCashInCents = min.multiply(CENTS_TO_DOLLARS_FACTOR).intValueExact();
     }
 }

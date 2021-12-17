@@ -22,10 +22,9 @@ public class PosApp extends javafx.application.Application {
             configStage.setOnCloseRequest((event) -> System.exit(0));
             configStage.showAndWait();
         }
-
         GlobalData.loadShopDetails();
 
-        Persistence persistence = new Persistence();
+        Persistence persistence = new Persistence("jdbc:ucanaccess://" + GlobalData.getDbUrl());
         persistence.findLastInsertedTransaction();
 
         FXMLController controller = new FXMLController(persistence);

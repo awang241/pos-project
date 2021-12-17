@@ -1,19 +1,22 @@
 package controller;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.SQLException;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import controller.dialog.CashInputDialogController;
+import data.GlobalData;
 import data.Persistence;
 import enums.PaymentType;
+import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
-import javafx.collections.FXCollections;
-import javafx.collections.MapChangeListener;
-import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
+import javafx.collections.*;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -21,8 +24,11 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
+import javafx.util.Callback;
+import jdk.jshell.spi.SPIResolutionException;
 import model.Product;
 import model.Transaction;
+import model.TransactionItem;
 
 public class FXMLController implements Initializable {
 
@@ -48,15 +54,15 @@ public class FXMLController implements Initializable {
     @FXML
     private TextField textField;
     @FXML
-    private TableView<Product> itemTable;
+    private TableView<TransactionItem> itemTable;
     @FXML
-    private TableColumn<Product, String> itemColumn;
+    private TableColumn<TransactionItem, String> itemColumn;
     @FXML
-    private TableColumn<Product, String> unitPriceColumn;
+    private TableColumn<TransactionItem, String> unitPriceColumn;
     @FXML
-    private TableColumn<Product, Integer> quantityColumn;
+    private TableColumn<TransactionItem, Integer> quantityColumn;
     @FXML
-    private TableColumn<Product, String> priceColumn;
+    private TableColumn<TransactionItem, String> priceColumn;
     @FXML
     private Label subtotalLabel;
     @FXML
@@ -66,9 +72,14 @@ public class FXMLController implements Initializable {
 
     private boolean keepOldSubtotal = false;
 
-    private final ObservableMap<Product, Integer> itemCounts = FXCollections.observableHashMap();
+    private final Set<Product> productIndex = new HashSet<>();
 
-    private ObservableList<Product> items;
+    private final ObservableList<TransactionItem> items = FXCollections.observableArrayList(new Callback<TransactionItem, Observable[]>() {
+        @Override
+        public Observable[] call(TransactionItem param) {
+            return new Observable[]{param.quantityProperty(), param.priceProperty()};
+        }
+    });
 
     private int uncodedCount = 0;
 
@@ -78,63 +89,49 @@ public class FXMLController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        persistence = new Persistence();
+        //persistence = new Persistence(GlobalData.getDbUrl());
         itemTable.setPlaceholder(new Label(""));
-        items = FXCollections.observableArrayList(itemCounts.keySet());
 
         itemTable.setMouseTransparent(true);
         itemTable.setFocusTraversable(false);
 
-        itemColumn.setCellValueFactory(data -> Bindings.createStringBinding(()-> data.getValue().getName()));
+        itemColumn.setCellValueFactory(data -> Bindings.createStringBinding(()-> data.getValue().getProductName()));
 
-        unitPriceColumn.setCellValueFactory(data -> Bindings.createStringBinding(()-> {
-                float price = isDiscounted(data.getValue()) ? data.getValue().getDrp(): data.getValue().getPrice();
-                return String.format(CASH_TEMPLATE, price);
-            }, itemCounts));
+        unitPriceColumn.setCellValueFactory(data -> Bindings.createStringBinding(
+                ()-> NumberFormat.getCurrencyInstance().format(data.getValue().getPrice()), items));
 
-        quantityColumn.setCellValueFactory(cellData -> Bindings.valueAt(itemCounts, cellData.getValue()));
+        quantityColumn.setCellValueFactory(cellData -> Bindings.createIntegerBinding(
+                () -> cellData.getValue().getQuantity(), items)
+            .asObject());
 
         priceColumn.setCellValueFactory(data -> Bindings.createStringBinding(()->{
-                Product product = data.getValue();
-                float price = isDiscounted(product) ? product.getDrp(): product.getPrice();
-                return String.format(CASH_TEMPLATE, price * itemCounts.get(product));
-            },itemCounts));
+                TransactionItem item = data.getValue();
+                BigDecimal totalPrice = item.getPrice().multiply(new BigDecimal(item.getQuantity()));
+                return NumberFormat.getCurrencyInstance().format(totalPrice);
+            }, items));
 
-        itemCounts.addListener((MapChangeListener<Product,Integer>) change -> {
-            boolean removed = change.wasRemoved();
-            if (removed != change.wasAdded()) {
-                if (removed) {
-                    items.remove(change.getKey());
-                } else {
-                    items.add(change.getKey());
-                    cancelLabel.setVisible(false);
-                    paymentPane.setVisible(false);
-                    changePane.setVisible(false);
+        items.addListener(new ListChangeListener<TransactionItem>() {
+            @Override
+            public void onChanged(Change<? extends TransactionItem> change) {
+                while (change.next()) {
+                    if (change.wasAdded()) {
+                        cancelLabel.setVisible(false);
+                        paymentPane.setVisible(false);
+                        changePane.setVisible(false);
+                    }
+                    if (!keepOldSubtotal) {
+                        subtotalLabel.setText(String.format(CASH_TEMPLATE, calculateSubtotal()));
+                    }
                 }
-            }
-            if (!keepOldSubtotal) {
-                subtotalLabel.setText(String.format(CASH_TEMPLATE, calculateSubtotal()));
             }
         });
         itemTable.setItems(items);
     }
 
-    private boolean isDiscounted(Product product) {
-        if (!itemCounts.containsKey(product) || product.getDrp() <= 0f) {
-            return false;
-        } else {
-            return itemCounts.get(product) >= product.getUnit();
-        }
-    }
-
-    private float calculateSubtotal() {
-        float total = 0f;
-        for (Map.Entry<Product, Integer> item: itemCounts.entrySet()) {
-            boolean discounted = (item.getValue() >= item.getKey().getUnit()) && (item.getKey().getDrp() > 0);
-            float price = discounted ? item.getKey().getDrp(): item.getKey().getPrice();
-            total += price * item.getValue();
-        }
-        return total;
+    public BigDecimal calculateSubtotal() {
+        return items.stream()
+                .map(item -> (item.getPrice().multiply(new BigDecimal(item.getQuantity()))))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
 
@@ -143,7 +140,7 @@ public class FXMLController implements Initializable {
      */
     private void resetFields() {
         keepOldSubtotal = true;
-        itemCounts.clear();
+        items.clear();
         uncodedCount = 0;
         keepOldSubtotal = false;
     }
@@ -157,15 +154,24 @@ public class FXMLController implements Initializable {
             Product product = result.get();
             int quantity = product.isCarton() ? product.getUnit(): 1;
 
-            if (itemCounts.isEmpty()) {
+            if (items.isEmpty()) {
                 paymentPane.setVisible(false);
                 changePane.setVisible(false);
             }
 
-            if (itemCounts.containsKey(product)) {
-                itemCounts.put(product, itemCounts.get(product) + quantity);
+            TransactionItem newItem = new TransactionItem(items.size(), product.getName(), quantity, product.getDiscountCode(), product.getPrice());
+            Optional<TransactionItem> results = items.stream()
+                    .filter(item -> item.getProductName().equals(product.getName()))
+                    .findAny();
+            if (results.isPresent()) {
+                int total = results.get().getQuantity() + quantity;
+                results.get().setQuantity(total);
+                if (total >= product.getUnit() && product.getDrp().compareTo(BigDecimal.ZERO) > 0) {
+                    results.get().setPrice(product.getDrp());
+                }
             } else {
-                itemCounts.put(product, quantity);
+                items.add(newItem);
+                productIndex.add(product);
             }
 
             paymentPane.setVisible(false);
@@ -182,17 +188,20 @@ public class FXMLController implements Initializable {
      * the transaction is a refund, the subtotal is negative and the stock levels are increased instead.
      * @param type The payment type of the transaction
      */
-    public void saveTransaction(PaymentType type, float payment) {
-        Transaction transaction = new Transaction(new HashMap<>(itemCounts), LocalDateTime.now(), type, payment);
+    public void saveTransaction(PaymentType type, BigDecimal payment) {
+        Transaction transaction = new Transaction(items, LocalDateTime.now(), type, payment);
         try {
             persistence.saveTransaction(transaction);
-            for (Map.Entry<Product, Integer> item: itemCounts.entrySet()) {
+            for (TransactionItem item: items) {
                 int refundMultiplier = type == PaymentType.REFUND ? 1: -1;
-                item.getKey().addStock(refundMultiplier * item.getValue());
-                persistence.updateProduct(item.getKey());
+                Product product = productIndex.stream()
+                                .filter(prod -> prod.getName().equals(item.getProductName()))
+                                .findAny().orElseThrow();
+                product.addStock(refundMultiplier * item.getQuantity());
+                persistence.updateProduct(product);
             }
 
-        } catch (SQLException exception) {
+        } catch (SQLException | NoSuchElementException e) {
             Dialog<ButtonType> dialog = new Alert(Alert.AlertType.WARNING);
             dialog.setContentText("Error recording transaction");
             dialog.showAndWait();
@@ -207,16 +216,25 @@ public class FXMLController implements Initializable {
         if (e.getCode() == KeyCode.ENTER) {
             addItemByBarcode(textField.getText());
             textField.setText("");
-        } else if (e.getCode() == CASH && !itemCounts.isEmpty()){
+        } else if (e.getCode() == CASH && !items.isEmpty()){
             if (completeTransaction(PaymentType.CASH)) {
                 Print.Kick();
             }
-        } else if (e.getCode() == EFTPOS && !itemCounts.isEmpty()) {
+        } else if (e.getCode() == EFTPOS && !items.isEmpty()) {
             completeTransaction(PaymentType.EFTPOS);
         } else if (e.getCode() == CASH_OUT) {
-            Optional<Float> cashAmount = showCashInputDialog(0f);
-            cashAmount.ifPresent(aFloat -> itemCounts.put(Product.createCashProduct(aFloat), 1));
-        } else if (e.getCode() == CANCEL && !itemCounts.isEmpty()) {
+            Optional<BigDecimal> cashAmount = showCashInputDialog(BigDecimal.ONE);
+            cashAmount.ifPresent(aFloat -> {
+                Optional<TransactionItem> cashItem = items.stream()
+                        .filter(item -> item.getProductName().equals(TransactionItem.CASH_OUT))
+                        .findAny();
+                if (cashItem.isPresent()) {
+                    cashItem.get().setPrice(cashItem.get().getPrice().add(cashAmount.get()));
+                } else {
+                    items.add(TransactionItem.createCashProduct(cashAmount.get()));
+                }
+            });
+        } else if (e.getCode() == CANCEL && !items.isEmpty()) {
             cancelLabel.setVisible(true);
             resetFields();
         } else if (e.getCode() == TILL) {
@@ -225,16 +243,18 @@ public class FXMLController implements Initializable {
             Optional<Transaction> transaction = persistence.findLastInsertedTransaction();
             transaction.ifPresent(Print::printSheet);
         } else if (e.getCode() == UNCODED) {
-            Optional<Float> cash = showCashInputDialog(0.01f);
+            Optional<BigDecimal> cash = showCashInputDialog(new BigDecimal("0.01"));
             if (cash.isPresent()) {
-                Product uncoded = Product.createUncodedProduct(uncodedCount + 1, cash.get());
-                itemCounts.put(uncoded, 1);
+                TransactionItem uncoded = TransactionItem.createUncodedProduct(uncodedCount + 1, cash.get());
+                items.add(uncoded);
                 uncodedCount++;
             }
         } else if (e.getCode() == DELETE) {
-            Product deleted = items.get(items.size() - 1);
-            itemCounts.remove(deleted);
-        } else if (e.getCode() == REFUND && !itemCounts.isEmpty()) {
+            TransactionItem removed = items.remove(items.size() - 1);
+            if (items.stream().noneMatch(item -> item.getProductName().equals(removed.getProductName()))) {
+                productIndex.removeIf(product -> removed.getProductName().equals(product.getName()));
+            }
+        } else if (e.getCode() == REFUND && !items.isEmpty()) {
             completeTransaction(PaymentType.REFUND);
         }
     }
@@ -245,7 +265,7 @@ public class FXMLController implements Initializable {
      * @return true if the transaction was completed successfully; false otherwise
      */
     public boolean completeTransaction(PaymentType type) {
-        float payment = 0f;
+        BigDecimal payment = BigDecimal.ZERO;
         boolean accepted = false;
         if (type == PaymentType.EFTPOS || type == PaymentType.CHEQUE) {
             Dialog<ButtonType> dialog = new Dialog<>();
@@ -260,7 +280,7 @@ public class FXMLController implements Initializable {
             payment = calculateSubtotal();
             accepted = true;
         } else if (type == PaymentType.CASH) {
-            Optional<Float> cashResponse = showCashInputDialog(calculateSubtotal());
+            Optional<BigDecimal> cashResponse = showCashInputDialog(calculateSubtotal());
             if (cashResponse.isPresent()) {
                 payment = cashResponse.get();
                 accepted = true;
@@ -273,7 +293,7 @@ public class FXMLController implements Initializable {
             paymentPane.setVisible(true);
             if (type != PaymentType.REFUND) {
                 changePane.setVisible(true);
-                changeLabel.setText(String.format(CASH_TEMPLATE, payment - calculateSubtotal()));
+                changeLabel.setText(String.format(CASH_TEMPLATE, payment.subtract(calculateSubtotal())));
             }
             saveTransaction(type, payment);
             resetFields();
@@ -287,14 +307,14 @@ public class FXMLController implements Initializable {
      * @param minCash The minimum cash level that is accepted by the dialog.
      * @return The cash amount input by the user, or an empty optional if the user cancels the dialog.
      */
-    public Optional<Float> showCashInputDialog(float minCash) {
-        Dialog<Float> dialog;
-        Optional<Float> input = Optional.empty();
+    public Optional<BigDecimal> showCashInputDialog(BigDecimal minCash) {
+        Dialog<BigDecimal> dialog;
+        Optional<BigDecimal> input = Optional.empty();
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/cashInputDialog.fxml"));
             dialog = loader.load();
             CashInputDialogController controller = loader.getController();
-            controller.setMinCashInCents(minCash);
+            controller.setMinCash(minCash);
             input = dialog.showAndWait();
         } catch (IOException error) {
             error.printStackTrace();

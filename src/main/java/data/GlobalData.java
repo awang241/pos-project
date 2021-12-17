@@ -50,6 +50,11 @@ public class GlobalData {
     }
 
     public static void createShopDetails(String shopAddress, String shopTelNo, String GSTNo, String shopName, String dbUrl) throws IOException {
+        GlobalData.shopTelNo = shopTelNo;
+        GlobalData.GSTNo = GSTNo;
+        GlobalData.shopName = shopName;
+        GlobalData.shopAddress = shopAddress;
+        GlobalData.dbUrl = dbUrl;
         String text = String.format("%s\n%s\n%s\n%s\n%s",shopName, shopAddress, shopTelNo, GSTNo, dbUrl);
         File dataFile = new File(FILEPATH.toString());
         if (!dataFile.createNewFile()) {
@@ -61,7 +66,6 @@ public class GlobalData {
                 throw new IOException("Error creating data file.");
             }
         }
-
 
         try (FileWriter fw = new FileWriter(dataFile)){
             fw.write(text);

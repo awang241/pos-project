@@ -13,18 +13,21 @@ import java.awt.print.Paper;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.Set;
 
 import data.GlobalData;
 import model.Product;
 import model.Transaction;
+import model.TransactionItem;
 
 public class Print implements Printable {
 
     private static final String MONEY_FORMAT = "%.2f";
     private static Transaction transaction;
-    private static Map<Product, Integer> items;
+    private static Set<TransactionItem> items;
     private static final String dashLine = "-".repeat(70);
 
 
@@ -116,15 +119,15 @@ public class Print implements Printable {
                 y += fontContent.getSize2D() + 1;
                 g2d.drawString(dashLine, (float) x, (float) y);
                 y += fontContent.getSize2D() + 4;
-                double SubTotal = 0.0;
+                BigDecimal SubTotal = BigDecimal.ZERO;
 
-                for (Product product: items.keySet()) {
-                    g2d.drawString( product.getName(), (float) x, (float) y);
-                    double lineTotal = items.get(product) * product.getPrice();
-                    SubTotal += lineTotal;
-                    g2d.drawString("" + items.get(product), (float) x + 110, (float) y);
-                    g2d.drawString(String.format(MONEY_FORMAT, product.getPrice()), (float) x + 130, (float) y);
-                    g2d.drawString(String.format(MONEY_FORMAT, lineTotal), (float) x + 165, (float) y);
+                for (TransactionItem item: items) {
+                    g2d.drawString( item.getProductName(), x, y);
+                    BigDecimal lineTotal = item.getPrice().multiply(new BigDecimal(item.getQuantity()));
+                    SubTotal = SubTotal.add(lineTotal);
+                    g2d.drawString("" + item.getQuantity(), x + 110, (float) y);
+                    g2d.drawString(String.format(MONEY_FORMAT, item.getPrice()), x + 130, y);
+                    g2d.drawString(String.format(MONEY_FORMAT, lineTotal), x + 165, y);
                     y += fontContent.getSize2D() + 2;
                 }
                 y += fontContent.getSize2D() + 8;
@@ -135,7 +138,7 @@ public class Print implements Printable {
                 g2d.drawString(String.format(MONEY_FORMAT, transaction.getPayment()), (float) x+158, (float) y);
                 y += fontContent.getSize2D() + 4;
                 g2d.drawString("Change:", (float) x, (float) y);
-                g2d.drawString(String.format(MONEY_FORMAT, transaction.getPayment() - SubTotal), (float) x+158, (float) y);
+                g2d.drawString(String.format(MONEY_FORMAT, transaction.getPayment().subtract(SubTotal)), (float) x+158, (float) y);
                 y += fontContent.getSize2D() + 2;
 
                 g2d.drawString(dashLine, (float) x, (float) y);

@@ -1,43 +1,39 @@
 package model;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 
 public class Product {
-    public static final String CASH_OUT = "Cash Out";
-    public static final String UNCODED = "Uncoded Product ";
+
     private final String name;
-    private float price;
-    private float drp;
+    private BigDecimal price;
+    private BigDecimal drp;
     private int unit;
     private int stockLevel;
+    private String discountCode;
     private boolean isCarton;
 
-    public Product(String name, float price, float drp, int unit, int stockLevel, boolean isCarton) {
+    public Product(String name, BigDecimal price, BigDecimal drp, int unit, int stockLevel, String discountCode, boolean isCarton) {
         this.name = name;
         this.price = price;
         this.drp = drp;
         this.unit = unit;
         this.stockLevel = stockLevel;
+        if (discountCode == null || discountCode.isBlank()) {
+            this.discountCode = "";
+        }
         this.isCarton = isCarton;
-    }
-
-    public static Product createCashProduct(float amount) {
-        return new Product(CASH_OUT, amount, amount, 0, 0, false);
-    }
-
-    public static Product createUncodedProduct(int index, float price) {
-        return new Product(String.format(UNCODED + "%d", index), price, price, 0, 0, false);
     }
 
     public String getName() {
         return name;
     }
 
-    public float getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(float price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 
@@ -49,11 +45,11 @@ public class Product {
         this.unit = unit;
     }
 
-    public float getDrp() {
+    public BigDecimal getDrp() {
         return drp;
     }
 
-    public void setDrp(float drp) {
+    public void setDrp(BigDecimal drp) {
         this.drp = drp;
     }
 
@@ -75,6 +71,14 @@ public class Product {
 
     public void setCarton(boolean carton) {
         isCarton = carton;
+    }
+
+    public String getDiscountCode() {
+        return discountCode;
+    }
+
+    public void setDiscountCode(String discountCode) {
+        this.discountCode = discountCode;
     }
 
     @Override

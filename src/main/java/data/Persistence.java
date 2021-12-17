@@ -3,20 +3,28 @@ package data;
 import enums.PaymentType;
 import model.Product;
 import model.Transaction;
+import model.TransactionItem;
 
+import java.math.BigDecimal;
 import java.sql.*;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class Persistence {
     private static String dbUrl = "jdbc:ucanaccess://" + System.getProperty("user.dir") + "\\Pos.mdb";
 
-    public Persistence() {
-        dbUrl = "jdbc:ucanaccess://" + GlobalData.getDbUrl();
+    public Persistence(String URL) {
+        try {
+            Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        dbUrl = URL;
+        System.out.println("");
     }
 
     public Optional<Product> findProductByBarcode(String barcode) throws SQLException{
@@ -30,12 +38,13 @@ public class Persistence {
             if (!results.next()) {
                 return Optional.empty();
             }
-            return Optional.of(new Product(results.getString("Product"), results.getFloat("RP"),
-                    results.getFloat("DRP"), results.getInt("Unit"), results.getInt("Stock"),
-                    barcode.equals(results.getString("BarCode2"))));
+            return Optional.of(new Product(results.getString("Product"), results.getBigDecimal("RP"),
+                    results.getBigDecimal("DRP"), results.getInt("Unit"), results.getInt("Stock"),
+                    results.getString("DiscountCode"), barcode.equals(results.getString("BarCode2"))));
         } catch (Exception e) {
-            throw new IllegalArgumentException("");
+            e.printStackTrace();
         }
+        return Optional.empty();
     }
 
     public void updateProduct(Product product) throws SQLException {
@@ -43,10 +52,10 @@ public class Persistence {
         try (Connection conn = DriverManager.getConnection(dbUrl);
                 PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
             statement.setInt(1, product.getStockLevel());
-            statement.setFloat(2, product.getPrice());
+            statement.setBigDecimal(2, product.getPrice());
             statement.setInt(3, product.getUnit());
-            if (product.getDrp() > 0) {
-                statement.setFloat(4, product.getDrp());
+            if (product.getDrp().compareTo(BigDecimal.ZERO) > 0) {
+                statement.setBigDecimal(4, product.getDrp());
             } else {
                 statement.setNull(4, Types.FLOAT);
             }
@@ -59,6 +68,7 @@ public class Persistence {
         String queryString = "SELECT id, date, time, payment, paymentMethod " +
                 "FROM Transactions WHERE id = (SELECT MAX(id) FROM Transactions)";
         try (Connection conn = DriverManager.getConnection(dbUrl)) {
+            Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
             PreparedStatement statement = conn.prepareStatement(queryString);
             ResultSet results = statement.executeQuery();
             if (!results.next()) {
@@ -68,7 +78,7 @@ public class Persistence {
             LocalDate date = results.getDate("date").toLocalDate();
             LocalTime time = results.getTime("time").toLocalTime();
             LocalDateTime dateTime = date.atTime(time);
-            float payment = results.getFloat("payment");
+            BigDecimal payment = results.getBigDecimal("payment");
             String typeString = results.getString("paymentMethod");
             if (typeString == null) {
                 throw new IllegalArgumentException();
@@ -76,32 +86,34 @@ public class Persistence {
             PaymentType type = PaymentType.fromString(typeString);
             statement.close();
 
-            queryString = "SELECT RP, Unit, DRP, Stock, Qty, T.Price, T.Product FROM Product RIGHT JOIN" +
-                    " (SELECT * FROM TransactionItem WHERE TransactionID = ?) T ON T.Product = Product.Product";
+            queryString = "SELECT * FROM TransactionItem WHERE TransactionID = ?";
             statement = conn.prepareStatement(queryString);
             statement.setInt(1, transactionId);
             results = statement.executeQuery();
-            Map<Product, Integer> items = new HashMap<>();
+            Set<TransactionItem> items = new HashSet<>();
             int uncodedIndex = 1;
             while (results.next()) {
                 String name = results.getString("Product");
-                Product product;
-                int quantity = results.getInt("Qty");
-                if (name.matches(Product.UNCODED + "\\d*")) {
-                    product = Product.createUncodedProduct(uncodedIndex, results.getFloat("Price"));
+                BigDecimal price = results.getBigDecimal("Price");
+                TransactionItem item;
+
+                if (name.matches(TransactionItem.UNCODED + "\\d*")) {
+                    item = TransactionItem.createUncodedProduct(uncodedIndex, price);
                     uncodedIndex += 1;
-                } else if (name.equals(Product.CASH_OUT)){
-                    product = Product.createCashProduct(results.getFloat("Price"));
+                } else if (name.equals(TransactionItem.CASH_OUT)){
+                    item = TransactionItem.createCashProduct(price);
                 } else {
-                    product = new Product(name, results.getFloat("RP"), results.getFloat("DRP"),
-                            results.getInt("Unit"), results.getInt("Stock"),false);
+                    long id = results.getLong("ID");
+                    int quantity = results.getInt("Qty");
+                    String code = results.getString("DiscountCode");
+                    item = new TransactionItem(id, name, quantity, code, price);
                 }
-                items.put(product, quantity);
+                items.add(item);
             }
             statement.close();
 
             return Optional.of(new Transaction(items, dateTime, type, payment));
-        } catch (SQLException e) {
+        } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
         return Optional.empty();
@@ -113,11 +125,11 @@ public class Persistence {
         try (Connection connection = DriverManager.getConnection(dbUrl);
                 PreparedStatement transactionSt = connection.prepareStatement(transactionQuery, Statement.RETURN_GENERATED_KEYS);
                 PreparedStatement itemSt = connection.prepareStatement(itemQuery)){
-            Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
-            int refundMultiplier = transaction.getType() == PaymentType.REFUND ? -1: 1;
+            connection.setAutoCommit(false);
+            BigDecimal refundMultiplier = new BigDecimal(transaction.getType() == PaymentType.REFUND ? -1: 1);
             transactionSt.setDate(1, Date.valueOf(transaction.getDateTime().toLocalDate()));
             transactionSt.setTime(2, Time.valueOf(transaction.getDateTime().toLocalTime()));
-            transactionSt.setFloat(3, transaction.getPayment() * refundMultiplier);
+            transactionSt.setBigDecimal(3, transaction.getPayment().multiply(refundMultiplier));
             transactionSt.setString(4, transaction.getType().toString());
             transactionSt.setString(5, transaction.isComplete() ? "S": "N");
             transactionSt.executeUpdate();
@@ -127,15 +139,16 @@ public class Persistence {
             }
             int transactionId = set.getInt(1);
             set.close();
-            for (Product product: transaction.getItems().keySet()) {
+            for (TransactionItem item: transaction.getItems()) {
                 itemSt.setInt(1, transactionId);
-                itemSt.setString(2, product.getName());
-                itemSt.setInt(3, transaction.getItems().get(product));
-                itemSt.setFloat(4, product.getPrice());
+                itemSt.setString(2, item.getProductName());
+                itemSt.setInt(3, item.getQuantity());
+                itemSt.setBigDecimal(4, item.getPrice());
                 itemSt.executeUpdate();
             }
+            connection.commit();
             return true;
-        } catch (SQLException | ClassNotFoundException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;
