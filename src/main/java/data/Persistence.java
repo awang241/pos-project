@@ -24,7 +24,6 @@ public class Persistence {
         }
 
         dbUrl = URL;
-        System.out.println("");
     }
 
     public Optional<Product> findProductByBarcode(String barcode) throws SQLException{
@@ -45,6 +44,33 @@ public class Persistence {
             e.printStackTrace();
         }
         return Optional.empty();
+    }
+
+    public Set<Product> findSalesBetweenDates(LocalDateTime start, LocalDateTime end) {
+        String queryString = "SELECT Product.Product, Product.RP, SUM(TransactionItem.Qty) AS Qty, SUM(TransactionItem.Price * Qty) As Sales " +
+                "FROM ((TransactionItem " +
+                    "INNER JOIN (SELECT * FROM Transactions WHERE Date BETWEEN ? AND ?) As T " +
+                    "ON T.ID = TransactionItem.TransactionID) " +
+                        "INNER JOIN Product ON Product.Product = TransactionItem.Product) " +
+                "GROUP BY Product.Product, Product.RP";
+        try (Connection conn = DriverManager.getConnection(dbUrl);
+                PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
+            statement.setDate(1, Date.valueOf(start.toLocalDate()));
+            statement.setDate(2, Date.valueOf(end.toLocalDate()));
+            ResultSet results = statement.executeQuery();
+
+            Set<Product> products = new HashSet<>();
+            while (results.next()) {
+                Product product = new Product(results.getString("Product"), results.getBigDecimal("RP"),
+                        results.getBigDecimal("Sales"), 0, results.getInt("Qty"), "",
+                        false);
+                products.add(product);
+            }
+            return products;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public void updateProduct(Product product) throws SQLException {

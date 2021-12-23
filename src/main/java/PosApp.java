@@ -1,6 +1,4 @@
 import data.GlobalData;
-import controller.FXMLController;
-import data.Persistence;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -24,12 +22,7 @@ public class PosApp extends javafx.application.Application {
         }
         GlobalData.loadShopDetails();
 
-        Persistence persistence = new Persistence("jdbc:ucanaccess://" + GlobalData.getDbUrl());
-        persistence.findLastInsertedTransaction();
-
-        FXMLController controller = new FXMLController(persistence);
-        loader = new FXMLLoader(getClass().getResource("fxml/scene.fxml"));
-        loader.setController(controller);
+        loader = new FXMLLoader(getClass().getResource("fxml/mainWindow.fxml"));
 
         scene = new Scene(loader.load());
         scene.getStylesheets().add(getClass().getResource("css/styles.css").toExternalForm());

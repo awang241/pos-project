@@ -68,18 +68,13 @@ public class FXMLController implements Initializable {
     @FXML
     private Label cancelLabel;
 
-    private Persistence persistence;
+    private final Persistence persistence;
 
     private boolean keepOldSubtotal = false;
 
     private final Set<Product> productIndex = new HashSet<>();
 
-    private final ObservableList<TransactionItem> items = FXCollections.observableArrayList(new Callback<TransactionItem, Observable[]>() {
-        @Override
-        public Observable[] call(TransactionItem param) {
-            return new Observable[]{param.quantityProperty(), param.priceProperty()};
-        }
-    });
+    private final ObservableList<TransactionItem> items = FXCollections.observableArrayList(param -> new Observable[]{param.quantityProperty(), param.priceProperty()});
 
     private int uncodedCount = 0;
 
@@ -89,7 +84,6 @@ public class FXMLController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        //persistence = new Persistence(GlobalData.getDbUrl());
         itemTable.setPlaceholder(new Label(""));
 
         itemTable.setMouseTransparent(true);
@@ -110,18 +104,15 @@ public class FXMLController implements Initializable {
                 return NumberFormat.getCurrencyInstance().format(totalPrice);
             }, items));
 
-        items.addListener(new ListChangeListener<TransactionItem>() {
-            @Override
-            public void onChanged(Change<? extends TransactionItem> change) {
-                while (change.next()) {
-                    if (change.wasAdded()) {
-                        cancelLabel.setVisible(false);
-                        paymentPane.setVisible(false);
-                        changePane.setVisible(false);
-                    }
-                    if (!keepOldSubtotal) {
-                        subtotalLabel.setText(String.format(CASH_TEMPLATE, calculateSubtotal()));
-                    }
+        items.addListener((ListChangeListener<TransactionItem>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    cancelLabel.setVisible(false);
+                    paymentPane.setVisible(false);
+                    changePane.setVisible(false);
+                }
+                if (!keepOldSubtotal) {
+                    subtotalLabel.setText(String.format(CASH_TEMPLATE, calculateSubtotal()));
                 }
             }
         });
