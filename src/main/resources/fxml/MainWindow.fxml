@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.layout.BorderPane?>
+
+<BorderPane fx:id="mainBorderPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.MainWindowController">
+   <top>
+      <MenuBar BorderPane.alignment="CENTER">
+        <menus>
+          <Menu mnemonicParsing="false" onAction="#loadPOS" text="POS">
+               <items>
+                  <MenuItem mnemonicParsing="false" text="Show POS Screen" />
+               </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Sales Report">
+            <items>
+              <MenuItem mnemonicParsing="false" onAction="#loadGeneralReport" text="Show General Report" />
+                <MenuItem mnemonicParsing="false" onAction="#loadPeriodicReport" text="Show Weekly/Monthly Report" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Orders">
+               <items>
+                  <MenuItem mnemonicParsing="false" text="Create Order Report" />
+               </items>
+          </Menu>
+        </menus>
+      </MenuBar>
+   </top>
+</BorderPane>

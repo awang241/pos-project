@@ -1,9 +1,10 @@
 package data;
 
+import com.google.common.collect.Table;
+import com.google.common.collect.TreeBasedTable;
 import enums.PaymentType;
-import model.Product;
-import model.Transaction;
-import model.TransactionItem;
+import enums.Period;
+import model.*;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -65,6 +66,34 @@ public class Persistence {
                         results.getBigDecimal("Sales"), 0, results.getInt("Qty"), "",
                         false);
                 products.add(product);
+            }
+            return products;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public Table<String, Integer, Integer> findSalesByPeriod(int year, Period period) {
+        String queryString = "" +
+                "SELECT Product.Product, Iif(Sum(TransactionItem.Qty) is null, 0, Sum(TransactionItem.Qty)) AS Qty, DatePart(%s,[Date]) AS Index " +
+                "FROM (TransactionItem " +
+                    "INNER JOIN (SELECT * FROM Transactions WHERE DatePart(\"yyyy\", [Date]) = ?) AS T " +
+                    "ON TransactionItem.TransactionID = T.ID) " +
+                        "INNER JOIN Product ON TransactionItem.Product = Product.Product " +
+                "GROUP BY Product.Product, DatePart(%s, [Date]) ";
+        String datePart = period.equals(Period.MONTHLY) ? "\"m\"": "\"ww\"";
+        queryString = String.format(queryString, datePart, datePart);
+        try (Connection conn = DriverManager.getConnection(dbUrl);
+             PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
+            statement.setInt(1, year);
+            ResultSet results = statement.executeQuery();
+            Table<String, Integer, Integer> products = TreeBasedTable.create();
+            while (results.next()) {
+                String product = results.getString("Product");
+                int index = results.getInt("Index");
+                int quantity = results.getInt("Qty");
+                products.put(product, index, quantity);
             }
             return products;
         } catch (SQLException e) {

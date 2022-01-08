@@ -22,7 +22,7 @@ public class PosApp extends javafx.application.Application {
         }
         GlobalData.loadShopDetails();
 
-        loader = new FXMLLoader(getClass().getResource("fxml/mainWindow.fxml"));
+        loader = new FXMLLoader(getClass().getResource("fxml/MainWindow.fxml"));
 
         scene = new Scene(loader.load());
         scene.getStylesheets().add(getClass().getResource("css/styles.css").toExternalForm());

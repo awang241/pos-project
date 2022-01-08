@@ -7,11 +7,8 @@ import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import controller.dialog.CashInputDialogController;
-import data.GlobalData;
 import data.Persistence;
 import enums.PaymentType;
 import javafx.beans.Observable;
@@ -24,13 +21,11 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
-import javafx.util.Callback;
-import jdk.jshell.spi.SPIResolutionException;
 import model.Product;
 import model.Transaction;
 import model.TransactionItem;
 
-public class FXMLController implements Initializable {
+public class POSController implements Initializable {
 
     private static final String CASH_TEMPLATE = "$%.2f";
     private static final KeyCode CASH = KeyCode.F1;
@@ -78,7 +73,7 @@ public class FXMLController implements Initializable {
 
     private int uncodedCount = 0;
 
-    public FXMLController(Persistence persistence) {
+    public POSController(Persistence persistence) {
         this.persistence = persistence;
     }
 
@@ -302,7 +297,7 @@ public class FXMLController implements Initializable {
         Dialog<BigDecimal> dialog;
         Optional<BigDecimal> input = Optional.empty();
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/cashInputDialog.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/dialog/CashInputDialog.fxml"));
             dialog = loader.load();
             CashInputDialogController controller = loader.getController();
             controller.setMinCash(minCash);
