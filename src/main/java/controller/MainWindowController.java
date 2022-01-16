@@ -7,10 +7,15 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.layout.BorderPane;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class MainWindowController implements Initializable {
@@ -26,7 +31,7 @@ public class MainWindowController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         try {
-            Persistence persistence = new Persistence("jdbc:ucanaccess://" + GlobalData.getDbUrl());
+            Persistence persistence = new Persistence();
             persistence.findSalesByPeriod(2018, Period.MONTHLY);
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/POS.fxml"));
             loader.setControllerFactory(param -> new POSController(persistence));
@@ -50,15 +55,25 @@ public class MainWindowController implements Initializable {
         mainBorderPane.setCenter(posScreen);
     }
 
-    public void loadOrders() {
-
-    }
-
     public void loadGeneralReport() {
         mainBorderPane.setCenter(generalReportScreen);
     }
 
-    public void loadPeriodicReport() {mainBorderPane.setCenter(periodicReportScreen);
+    public void loadPeriodicReport() {mainBorderPane.setCenter(periodicReportScreen);}
 
+    public void showConfigDialog() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/dialog/ConfigDialog.fxml"));
+            Dialog<ButtonType> configDialog = new Dialog<>();
+            DialogPane configPane = loader.load();
+
+
+            configDialog.setDialogPane(configPane);
+            configDialog.showAndWait();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+
+
 }

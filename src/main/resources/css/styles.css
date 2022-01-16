@@ -1,7 +1,75 @@
+.root {
+    -fx-background-color: blue;
+    -fx-text-fill: white;
+}
+
 .label {
-    -fx-text-fill: black;
+    -fx-text-fill: white;
+}
+
+.button{
+    -fx-text-fill: white;
+    -fx-background-color: black, white, blue;
+    -fx-effect: dropshadow( three-pass-box , rgba(0,0,0,0.6) , 5, 0.0 , 0 , 1 );
+}
+
+.button:hover {
+    -fx-background-color: black, white, #3030FF;
+}
+
+.button:armed {
+    -fx-background-color: black, white, #000080;
+}
+
+.menu-bar {
+    -fx-background-color: blue;
+    -fx-text-fill: white;
+    -fx-text-weight: bold;
+}
+
+.menu-item {
+    -fx-background-color: blue;
+    -fx-text-fill: white;
+    -fx-text-weight: bold;
+}
+
+.text-field {
+    -fx-background-color: blue;
+    -fx-text-fill: white;
 }
 
 .table-view {
     -fx-font-size:15px;
+    -fx-text-fill:white;
+    -fx-background-color: blue;
+}
+
+.table-view .column-header-background .filler {
+    -fx-font-size:15px;
+    -fx-text-fill:white;
+    -fx-background-color: blue;
+}
+
+.table-view .corner {
+    -fx-font-size:15px;
+    -fx-text-fill:white;
+    -fx-background-color: blue;
+}
+
+.table-cell {
+    -fx-background-color: blue;
+    -fx-text-fill: white;
+}
+
+.table-column {
+    -fx-background-color: blue;
+    -fx-text-fill: white;
+}
+
+.table-view:row-selection .table-row-cell:selected .table-cell {
+    -fx-background-color: transparent;
+}
+
+.table-view:cell-selection .table-cell:selected {
+    -fx-background-color: blue;
 }

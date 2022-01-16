@@ -1,18 +1,23 @@
 package controller.dialog;
 
 import data.GlobalData;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
 import javafx.stage.FileChooser;
-import javafx.stage.Stage;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 public class ConfigDialogController implements Initializable {
+    @FXML
+    private DialogPane dialogPane;
     @FXML
     private TextField nameField;
     @FXML
@@ -26,16 +31,45 @@ public class ConfigDialogController implements Initializable {
     @FXML
     private Button pickDBButton;
     @FXML
-    private Button okButton;
-    @FXML
     private Label warningLabel;
+    @FXML
+    private CheckBox showCredentialsBox;
+    @FXML
+    private GridPane credentialsPane;
+    @FXML
+    private TextField userField;
+    @FXML
+    private PasswordField passwordField;
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        nameField.setText(GlobalData.getShopName());
-        phoneField.setText(GlobalData.getShopTelNo());
-        gstField.setText(GlobalData.getGSTNo());
-        addressArea.setText(GlobalData.getShopAddress().replace(", ", "\n"));
+        nameField.setText(GlobalData.getProperty(GlobalData.Key.NAME));
+        phoneField.setText(GlobalData.getProperty(GlobalData.Key.TEL_NO));
+        gstField.setText(GlobalData.getProperty(GlobalData.Key.GST_NO));
+        addressArea.setText(GlobalData.getProperty(GlobalData.Key.ADDRESS));
+        dbField.setText(GlobalData.getProperty(GlobalData.Key.DB_FILEPATH));
+
+        String password = GlobalData.getProperty(GlobalData.Key.DB_PASSWORD);
+        if (password == null) {
+            showCredentialsBox.setSelected(false);
+            credentialsPane.setDisable(true);
+        } else {
+            passwordField.setText(password);
+            userField.setText(GlobalData.getProperty(GlobalData.Key.DB_USERNAME));
+        }
+
+        dialogPane.lookupButton(ButtonType.OK).addEventFilter(ActionEvent.ACTION, event -> {
+            if (!validate()){
+                warningLabel.setVisible(true);
+                event.consume();
+            } else {
+                submit();
+            }
+        });
+    }
+
+    public void showCredentialsHandler() {
+        credentialsPane.setDisable(!showCredentialsBox.isSelected());
     }
 
     public void selectDBFile() {
@@ -49,26 +83,42 @@ public class ConfigDialogController implements Initializable {
         }
     }
 
+    public boolean validate() {
+        boolean blankCredentials = (isNotBlankOrNull(userField.getText()) && isNotBlankOrNull(passwordField.getText()));
+        boolean validCredentials = !showCredentialsBox.isSelected() || blankCredentials ;
+        return validCredentials
+            && isNotBlankOrNull(nameField.getText())
+            && isNotBlankOrNull(phoneField.getText())
+            && isNotBlankOrNull(gstField.getText())
+            && isNotBlankOrNull(dbField.getText())
+            && isNotBlankOrNull(addressArea.getText());
+    }
+
     public void submit() {
-        if (nameField.getText().isBlank()
-                || phoneField.getText().isBlank()
-                || gstField.getText().isBlank()
-                || dbField.getText().isBlank()
-                || addressArea.getText().isBlank()) {
-            warningLabel.setVisible(true);
+        Map<GlobalData.Key, String> newProperties = new HashMap<>();
+        newProperties.put(GlobalData.Key.ADDRESS, addressArea.getText());
+        newProperties.put(GlobalData.Key.TEL_NO, phoneField.getText());
+        newProperties.put(GlobalData.Key.GST_NO, gstField.getText());
+        newProperties.put(GlobalData.Key.NAME, nameField.getText());
+        newProperties.put(GlobalData.Key.DB_FILEPATH, dbField.getText());
+        if (showCredentialsBox.isSelected()) {
+            newProperties.put(GlobalData.Key.DB_USERNAME, userField.getText());
+            newProperties.put(GlobalData.Key.DB_PASSWORD, passwordField.getText());
         } else {
-            if (!GlobalData.shopDataFileExists()) {
-                try {
-                    String address = addressArea.getText().replace("\n", ", ");
-                    GlobalData.createShopDetails(address, phoneField.getText(), gstField.getText(), nameField.getText(), dbField.getText());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    System.exit(-1);
-                }
-            }
-            Stage stage = (Stage) okButton.getScene().getWindow();
-            stage.close();
+            newProperties.put(GlobalData.Key.DB_USERNAME, null);
+            newProperties.put(GlobalData.Key.DB_PASSWORD, null);
         }
+        try {
+            GlobalData.setProperties(newProperties);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Error saving application properties.", ButtonType.OK);
+            alert.showAndWait();
+        }
+    }
+
+    private boolean isNotBlankOrNull(String string) {
+        return string != null && !string.isBlank();
     }
 
 }

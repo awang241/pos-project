@@ -80,9 +80,7 @@ public class POSController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         itemTable.setPlaceholder(new Label(""));
-
         itemTable.setMouseTransparent(true);
-        itemTable.setFocusTraversable(false);
 
         itemColumn.setCellValueFactory(data -> Bindings.createStringBinding(()-> data.getValue().getProductName()));
 
@@ -162,7 +160,7 @@ public class POSController implements Initializable {
 
             paymentPane.setVisible(false);
             changePane.setVisible(false);
-        } catch (SQLException | IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             e.printStackTrace();
         }
     }
@@ -194,6 +192,79 @@ public class POSController implements Initializable {
         }
     }
 
+    public void cashButtonHandler() {
+        if (!items.isEmpty()) {
+            if (completeTransaction(PaymentType.CASH)) {
+                Print.Kick();
+            }
+        }
+    }
+
+    public void eftposButtonHandler() {
+        if (!items.isEmpty()) {
+            completeTransaction(PaymentType.EFTPOS);
+        }
+
+    }
+
+    public void cashOutButtonHandler() {
+        Optional<BigDecimal> cashAmount = showCashInputDialog(BigDecimal.ONE);
+        cashAmount.ifPresent(aFloat -> {
+            Optional<TransactionItem> cashItem = items.stream()
+                    .filter(item -> item.getProductName().equals(TransactionItem.CASH_OUT))
+                    .findAny();
+            if (cashItem.isPresent()) {
+                cashItem.get().setPrice(cashItem.get().getPrice().add(cashAmount.get()));
+            } else {
+                items.add(TransactionItem.createCashProduct(cashAmount.get()));
+            }
+        });
+    }
+
+    public void cancelButtonHandler() {
+        if (!items.isEmpty()) {
+            cancelLabel.setVisible(true);
+            resetFields();
+        }
+    }
+
+    public void tillButtonHandler() {
+        Print.Kick();
+    }
+
+    public void printButtonHandler() {
+        Optional<Transaction> transaction = persistence.findLastInsertedTransaction();
+        transaction.ifPresent(Print::printSheet);
+    }
+
+    public void uncodedButtonHandler() {
+        Optional<BigDecimal> cash = showCashInputDialog(new BigDecimal("0.01"));
+        if (cash.isPresent()) {
+            TransactionItem uncoded = TransactionItem.createUncodedProduct(uncodedCount + 1, cash.get());
+            items.add(uncoded);
+            uncodedCount++;
+        }
+    }
+
+    public void deleteButtonHandler() {
+        if (!items.isEmpty()) {
+            TransactionItem removed = items.remove(items.size() - 1);
+            if (items.stream().noneMatch(item -> item.getProductName().equals(removed.getProductName()))) {
+                productIndex.removeIf(product -> removed.getProductName().equals(product.getName()));
+            }
+        }
+    }
+
+    public void refundButtonHandler() {
+        if (!items.isEmpty()) {
+            completeTransaction(PaymentType.REFUND);
+        }
+    }
+
+    public void addStockButtonHandler() {
+        System.out.println("ok");
+    }
+
     /**
      * Event handler for key press/release events on the text input field.
      * @param e the key event that was pressed
@@ -202,46 +273,26 @@ public class POSController implements Initializable {
         if (e.getCode() == KeyCode.ENTER) {
             addItemByBarcode(textField.getText());
             textField.setText("");
-        } else if (e.getCode() == CASH && !items.isEmpty()){
-            if (completeTransaction(PaymentType.CASH)) {
-                Print.Kick();
-            }
-        } else if (e.getCode() == EFTPOS && !items.isEmpty()) {
-            completeTransaction(PaymentType.EFTPOS);
+        } else if (e.getCode() == CASH){
+            cashButtonHandler();
+        } else if (e.getCode() == EFTPOS) {
+            eftposButtonHandler();
         } else if (e.getCode() == CASH_OUT) {
-            Optional<BigDecimal> cashAmount = showCashInputDialog(BigDecimal.ONE);
-            cashAmount.ifPresent(aFloat -> {
-                Optional<TransactionItem> cashItem = items.stream()
-                        .filter(item -> item.getProductName().equals(TransactionItem.CASH_OUT))
-                        .findAny();
-                if (cashItem.isPresent()) {
-                    cashItem.get().setPrice(cashItem.get().getPrice().add(cashAmount.get()));
-                } else {
-                    items.add(TransactionItem.createCashProduct(cashAmount.get()));
-                }
-            });
-        } else if (e.getCode() == CANCEL && !items.isEmpty()) {
-            cancelLabel.setVisible(true);
-            resetFields();
+            cashOutButtonHandler();
+        } else if (e.getCode() == CANCEL) {
+            cancelButtonHandler();
         } else if (e.getCode() == TILL) {
-            Print.Kick();
+            tillButtonHandler();
         } else if (e.getCode() == PRINT) {
-            Optional<Transaction> transaction = persistence.findLastInsertedTransaction();
-            transaction.ifPresent(Print::printSheet);
+            printButtonHandler();
         } else if (e.getCode() == UNCODED) {
-            Optional<BigDecimal> cash = showCashInputDialog(new BigDecimal("0.01"));
-            if (cash.isPresent()) {
-                TransactionItem uncoded = TransactionItem.createUncodedProduct(uncodedCount + 1, cash.get());
-                items.add(uncoded);
-                uncodedCount++;
-            }
+            uncodedButtonHandler();
         } else if (e.getCode() == DELETE) {
-            TransactionItem removed = items.remove(items.size() - 1);
-            if (items.stream().noneMatch(item -> item.getProductName().equals(removed.getProductName()))) {
-                productIndex.removeIf(product -> removed.getProductName().equals(product.getName()));
-            }
-        } else if (e.getCode() == REFUND && !items.isEmpty()) {
-            completeTransaction(PaymentType.REFUND);
+            deleteButtonHandler();
+        } else if (e.getCode() == REFUND) {
+            refundButtonHandler();
+        } else if (e.getCode() == ADD_STOCK) {
+            addStockButtonHandler();
         }
     }
 

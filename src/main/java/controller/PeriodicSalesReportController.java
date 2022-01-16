@@ -84,6 +84,7 @@ public class PeriodicSalesReportController implements Initializable {
         salesTable.getColumns().clear();
         salesTable.getColumns().add(nameColumn);
         salesTable.getColumns().add(totalQtyColumn);
+
         for (int index: sales.columnKeySet()) {
             String columnTitle;
             if (Period.MONTHLY.equals(period)) {
@@ -92,6 +93,7 @@ public class PeriodicSalesReportController implements Initializable {
                 columnTitle = String.format("Week %d ()", index);
             }
             TableColumn<String, Integer> column = new TableColumn<>(columnTitle);
+            column.setMinWidth(120);
             column.setPrefWidth(120);
             column.setCellValueFactory((product) -> Bindings.createIntegerBinding(() -> {
                 Map<Integer, Integer> row = sales.row(product.getValue());

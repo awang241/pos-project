@@ -12,9 +12,9 @@ public class PeriodicSales {
     @Getter @Setter
     private Period period;
     @Getter @Setter
-    String productName;
+    private String productName;
     @Getter
-    Map<Integer, Integer> quantity = new HashMap<>();
+    private final Map<Integer, Integer> quantity = new HashMap<>();
 
     public PeriodicSales(String name, Map<Integer, Integer> sales, Period period) {
         this.productName = name;

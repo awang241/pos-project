@@ -15,11 +15,9 @@ import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 import java.util.Set;
 
 import data.GlobalData;
-import model.Product;
 import model.Transaction;
 import model.TransactionItem;
 
@@ -85,7 +83,7 @@ public class Print implements Printable {
     }
 
     @Override
-    public int print(Graphics graphics, PageFormat pageFormat, int pageIndex) throws PrinterException {
+    public int print(Graphics graphics, PageFormat pageFormat, int pageIndex) {
         try {
             // Convert to Graphics2D
             Graphics2D g2d = (Graphics2D) graphics;
@@ -99,25 +97,25 @@ public class Print implements Printable {
                 Font fontTitle = new Font("   ", Font.BOLD, 16);
                 g2d.setFont(fontTitle); // Set font
                 // print title
-                g2d.drawString(GlobalData.getShopName(), (float) x , (float) y+2);
+                g2d.drawString(GlobalData.getProperty(GlobalData.Key.NAME), x, y +2);
                 y += fontTitle.getSize2D() + 4;
 
                 Font fontContent = new Font("   ", Font.PLAIN, 9);
                 g2d.setFont(fontContent); // Set font
                 // print order number
-                g2d.drawString( GlobalData.getShopAddress(), (float) x, (float) y);
+                g2d.drawString( GlobalData.getProperty(GlobalData.Key.ADDRESS), x, y);
                 y += fontContent.getSize2D() + 4;
-                g2d.drawString("Telephone: " + GlobalData.getShopTelNo(), (float) x, (float) y);
+                g2d.drawString("Telephone: " + GlobalData.getProperty(GlobalData.Key.TEL_NO), x, y);
                 y += fontContent.getSize2D() + 4;
-                g2d.drawString("Tax invoice" , (float) x, (float) y);
-                g2d.drawString("GST Reg No." + GlobalData.getGSTNo(), (float) x+85, (float) y);
+                g2d.drawString("Tax invoice" , x, y);
+                g2d.drawString("GST Reg No." + GlobalData.getProperty(GlobalData.Key.GST_NO), x +85, y);
                 y += fontContent.getSize2D() + 10;
-                g2d.drawString("Product", (float) x, (float) y);
-                g2d.drawString("Qty", (float) x + 110, (float) y);
-                g2d.drawString("Price", (float) x + 130, (float) y);
-                g2d.drawString("$", (float) x + 165, (float) y);
+                g2d.drawString("Product", x, y);
+                g2d.drawString("Qty", x + 110, y);
+                g2d.drawString("Price", x + 130, y);
+                g2d.drawString("$", x + 165, y);
                 y += fontContent.getSize2D() + 1;
-                g2d.drawString(dashLine, (float) x, (float) y);
+                g2d.drawString(dashLine, x, y);
                 y += fontContent.getSize2D() + 4;
                 BigDecimal SubTotal = BigDecimal.ZERO;
 
@@ -125,37 +123,37 @@ public class Print implements Printable {
                     g2d.drawString( item.getProductName(), x, y);
                     BigDecimal lineTotal = item.getPrice().multiply(new BigDecimal(item.getQuantity()));
                     SubTotal = SubTotal.add(lineTotal);
-                    g2d.drawString("" + item.getQuantity(), x + 110, (float) y);
+                    g2d.drawString("" + item.getQuantity(), x + 110, y);
                     g2d.drawString(String.format(MONEY_FORMAT, item.getPrice()), x + 130, y);
                     g2d.drawString(String.format(MONEY_FORMAT, lineTotal), x + 165, y);
                     y += fontContent.getSize2D() + 2;
                 }
                 y += fontContent.getSize2D() + 8;
-                g2d.drawString("Balance Due:", (float) x, (float) y);
-                g2d.drawString(String.format(MONEY_FORMAT, SubTotal), (float) x+158, (float) y);
+                g2d.drawString("Balance Due:", x, y);
+                g2d.drawString(String.format(MONEY_FORMAT, SubTotal), x +158, y);
                 y += fontContent.getSize2D() + 4;
-                g2d.drawString("Payment:", (float) x, (float) y);
-                g2d.drawString(String.format(MONEY_FORMAT, transaction.getPayment()), (float) x+158, (float) y);
+                g2d.drawString("Payment:", x, y);
+                g2d.drawString(String.format(MONEY_FORMAT, transaction.getPayment()), x +158, y);
                 y += fontContent.getSize2D() + 4;
-                g2d.drawString("Change:", (float) x, (float) y);
-                g2d.drawString(String.format(MONEY_FORMAT, transaction.getPayment().subtract(SubTotal)), (float) x+158, (float) y);
+                g2d.drawString("Change:", x, y);
+                g2d.drawString(String.format(MONEY_FORMAT, transaction.getPayment().subtract(SubTotal)), x +158, y);
                 y += fontContent.getSize2D() + 2;
 
-                g2d.drawString(dashLine, (float) x, (float) y);
+                g2d.drawString(dashLine, x, y);
                 y += fontContent.getSize2D() + 2;
 
                 DateTimeFormatter format = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
                 String formatDateTime = transaction.getDateTime().format(format);
-                g2d.drawString( formatDateTime, (float) x, (float) y);
+                g2d.drawString( formatDateTime, x, y);
                 y += fontContent.getSize2D() + 4;
 
                 g2d.drawString(transaction.getType().toString(), x, y);
                 y += fontContent.getSize2D() + 4;
 
-                g2d.drawString ("GST Included", (float) x, (float) y);
+                g2d.drawString ("GST Included", x, y);
                 y += fontContent.getSize2D() + 10;
 
-                g2d.drawString(" ", (float) x, (float) y);
+                g2d.drawString(" ", x, y);
 
                 return PAGE_EXISTS;
             }

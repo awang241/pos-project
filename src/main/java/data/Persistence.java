@@ -15,22 +15,26 @@ import java.time.LocalTime;
 import java.util.*;
 
 public class Persistence {
-    private static String dbUrl = "jdbc:ucanaccess://" + System.getProperty("user.dir") + "\\Pos.mdb";
-
-    public Persistence(String URL) {
+    public Persistence() {
         try {
             Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-
-        dbUrl = URL;
     }
 
-    public Optional<Product> findProductByBarcode(String barcode) throws SQLException{
+    private String getDBUrl() {
+        return "jdbc:ucanaccess://" + GlobalData.getProperty(GlobalData.Key.DB_FILEPATH);
+    }
+
+    private Connection createConnection() throws SQLException {
+        return DriverManager.getConnection(getDBUrl(), null, GlobalData.getProperty(GlobalData.Key.DB_PASSWORD));
+    }
+
+    public Optional<Product> findProductByBarcode(String barcode){
         String queryString = "Select * from Product where BarCode=? or BarCode2=?";
         ResultSet results;
-        try (Connection conn = DriverManager.getConnection(dbUrl);
+        try (Connection conn = createConnection();
              PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
             statement.setString(1, barcode);
             statement.setString(2, barcode);
@@ -54,7 +58,7 @@ public class Persistence {
                     "ON T.ID = TransactionItem.TransactionID) " +
                         "INNER JOIN Product ON Product.Product = TransactionItem.Product) " +
                 "GROUP BY Product.Product, Product.RP";
-        try (Connection conn = DriverManager.getConnection(dbUrl);
+        try (Connection conn = createConnection();
                 PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
             statement.setDate(1, Date.valueOf(start.toLocalDate()));
             statement.setDate(2, Date.valueOf(end.toLocalDate()));
@@ -84,7 +88,7 @@ public class Persistence {
                 "GROUP BY Product.Product, DatePart(%s, [Date]) ";
         String datePart = period.equals(Period.MONTHLY) ? "\"m\"": "\"ww\"";
         queryString = String.format(queryString, datePart, datePart);
-        try (Connection conn = DriverManager.getConnection(dbUrl);
+        try (Connection conn = createConnection();
              PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
             statement.setInt(1, year);
             ResultSet results = statement.executeQuery();
@@ -104,7 +108,7 @@ public class Persistence {
 
     public void updateProduct(Product product) throws SQLException {
         String queryString = "UPDATE Product SET Stock = ?, RP = ?, Unit = ?, DRP = ? WHERE Product = ?";
-        try (Connection conn = DriverManager.getConnection(dbUrl);
+        try (Connection conn = createConnection();
                 PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
             statement.setInt(1, product.getStockLevel());
             statement.setBigDecimal(2, product.getPrice());
@@ -122,7 +126,7 @@ public class Persistence {
     public Optional<Transaction> findLastInsertedTransaction() {
         String queryString = "SELECT id, date, time, payment, paymentMethod " +
                 "FROM Transactions WHERE id = (SELECT MAX(id) FROM Transactions)";
-        try (Connection conn = DriverManager.getConnection(dbUrl)) {
+        try (Connection conn = createConnection()) {
             Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
             PreparedStatement statement = conn.prepareStatement(queryString);
             ResultSet results = statement.executeQuery();
@@ -174,10 +178,10 @@ public class Persistence {
         return Optional.empty();
     }
 
-    public boolean saveTransaction(Transaction transaction) {
+    public void saveTransaction(Transaction transaction) {
         String transactionQuery = "INSERT INTO Transactions (Date, Time, Payment, PaymentMethod, Type) VALUES (?, ?, ?, ?, ?)";
         String itemQuery = "INSERT INTO TransactionItem (TransactionID, Product, Qty, Price) VALUES (?, ?, ?, ?)";
-        try (Connection connection = DriverManager.getConnection(dbUrl);
+        try (Connection connection = createConnection();
                 PreparedStatement transactionSt = connection.prepareStatement(transactionQuery, Statement.RETURN_GENERATED_KEYS);
                 PreparedStatement itemSt = connection.prepareStatement(itemQuery)){
             connection.setAutoCommit(false);
@@ -202,10 +206,8 @@ public class Persistence {
                 itemSt.executeUpdate();
             }
             connection.commit();
-            return true;
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return false;
     }
 }

@@ -1,6 +1,5 @@
 package model;
 
-import javafx.beans.Observable;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -21,10 +20,10 @@ public class TransactionItem {
     private Transaction transaction;
     @Getter @Setter
     private String productName;
-    private IntegerProperty quantity;
+    private final IntegerProperty quantity;
     @Getter @Setter
     private String discountCode;
-    private ObjectProperty<BigDecimal> price;
+    private final ObjectProperty<BigDecimal> price;
 
     public TransactionItem(long id, String name, int quantity, String discountCode, BigDecimal price) {
         this.id = id;
@@ -80,7 +79,7 @@ public class TransactionItem {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         TransactionItem that = (TransactionItem) o;
-        return id == that.id && quantity == that.quantity && this.price.equals(that.getPrice()) && Objects.equals(transaction, that.transaction) && productName.equals(that.productName) && Objects.equals(discountCode, that.discountCode);
+        return id == that.id && quantity == that.quantity && this.getPrice().equals(that.getPrice()) && Objects.equals(transaction, that.transaction) && productName.equals(that.productName) && Objects.equals(discountCode, that.discountCode);
     }
 
     @Override

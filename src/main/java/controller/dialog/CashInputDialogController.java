@@ -27,7 +27,7 @@ public class CashInputDialogController implements Initializable {
     @FXML
     private TextInputControl cashInput;
 
-    private IntegerProperty cashAmount = new SimpleIntegerProperty(0);
+    private final IntegerProperty cashAmount = new SimpleIntegerProperty(0);
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle){

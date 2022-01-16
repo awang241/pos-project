@@ -8,21 +8,23 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.text.Font?>
 
-
 <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.PeriodicSalesReportController">
    <children>
       <TableView fx:id="salesTable" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="300.0" prefWidth="600.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="80.0">
         <columns>
-          <TableColumn fx:id="nameColumn" prefWidth="213.0" text="Product" />
-          <TableColumn fx:id="totalQtyColumn" minWidth="0.0" prefWidth="117.0" text="Total Sales" />
+          <TableColumn fx:id="nameColumn" minWidth="200.0" prefWidth="213.0" text="Product" />
+          <TableColumn fx:id="totalQtyColumn" minWidth="40.0" prefWidth="117.0" text="Total Sales" />
         </columns>
+         <columnResizePolicy>
+            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+         </columnResizePolicy>
       </TableView>
       <ComboBox fx:id="periodCombo" layoutX="14.0" layoutY="14.0" prefHeight="25.0" prefWidth="92.0" />
       <ComboBox fx:id="yearCombo" layoutX="121.0" layoutY="14.0" prefHeight="25.0" prefWidth="71.0" promptText="Year" />
       <Button layoutX="206.0" layoutY="14.0" mnemonicParsing="false" onAction="#loadSalesReport" prefHeight="25.0" prefWidth="41.0" text="Go" />
       <Label fx:id="resultsLabel" layoutX="14.0" layoutY="49.0" prefHeight="17.0" prefWidth="242.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="49.0">
          <font>
-            <Font size="14.0" />
+            <Font name="System Bold" size="16.0" />
          </font>
       </Label>
    </children>
