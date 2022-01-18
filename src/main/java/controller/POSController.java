@@ -136,21 +136,21 @@ public class POSController implements Initializable {
                 throw new IllegalArgumentException("No product with that barcode exists");
             }
             Product product = result.get();
-            int quantity = product.isCarton() ? product.getUnit(): 1;
+            int quantity = product.isCarton() ? product.getUnitsPerCarton(): 1;
 
             if (items.isEmpty()) {
                 paymentPane.setVisible(false);
                 changePane.setVisible(false);
             }
 
-            TransactionItem newItem = new TransactionItem(items.size(), product.getName(), quantity, product.getDiscountCode(), product.getPrice());
+            TransactionItem newItem = new TransactionItem(items.size(), product.getName(), quantity, product.getDiscountCode(), product.getRetailPrice());
             Optional<TransactionItem> results = items.stream()
                     .filter(item -> item.getProductName().equals(product.getName()))
                     .findAny();
             if (results.isPresent()) {
                 int total = results.get().getQuantity() + quantity;
                 results.get().setQuantity(total);
-                if (total >= product.getUnit() && product.getDrp().compareTo(BigDecimal.ZERO) > 0) {
+                if (total >= product.getUnitsPerCarton() && product.getDrp().compareTo(BigDecimal.ZERO) > 0) {
                     results.get().setPrice(product.getDrp());
                 }
             } else {

@@ -55,10 +55,10 @@ public class SalesReportController implements Initializable {
 
     @Override
     public void initialize(URL URL, ResourceBundle rb) {
-        priceColumn.setCellValueFactory((product) -> Bindings.createObjectBinding(() -> product.getValue().getPrice()));
+        priceColumn.setCellValueFactory((product) -> Bindings.createObjectBinding(() -> product.getValue().getRetailPrice()));
         priceColumn.setCellFactory(currencyFormat());
         productColumn.setCellValueFactory((product) -> Bindings.createStringBinding(() -> product.getValue().getName()));
-        numSoldColumn.setCellValueFactory((product) -> Bindings.createIntegerBinding(() -> product.getValue().getStockLevel()).asObject());
+        numSoldColumn.setCellValueFactory((product) -> Bindings.createIntegerBinding(() -> product.getValue().getCurrentStock()).asObject());
         totalColumn.setCellValueFactory((product) -> Bindings.createObjectBinding(() -> product.getValue().getDrp()));
         totalColumn.setCellFactory(currencyFormat());
         //profitColumn.setCellValueFactory((product) -> Bindings.createStringBinding(() -> product.getValue().getStockLevel()).asObject());

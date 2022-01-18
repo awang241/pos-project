@@ -1,84 +1,76 @@
 package model;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.Optional;
 
+@Builder
+@Getter
+@AllArgsConstructor
 public class Product {
 
     private final String name;
-    private BigDecimal price;
+    private BigDecimal retailPrice;
+    private BigDecimal wholesalePrice;
     private BigDecimal drp;
-    private int unit;
-    private int stockLevel;
+    private int unitsPerCarton;
+    private int currentStock;
+    private int requiredStock;
+    @Builder.Default
+    private int requiredCartons = 0;
     private String discountCode;
+    private String supplierID;
     private boolean isCarton;
 
-    public Product(String name, BigDecimal price, BigDecimal drp, int unit, int stockLevel, String discountCode, boolean isCarton) {
+    public Product(String name, BigDecimal price, BigDecimal drp, int unitsPerCarton, int currentStock, String discountCode, boolean isCarton) {
         this.name = name;
-        this.price = price;
+        this.retailPrice = price;
         this.drp = drp;
-        this.unit = unit;
-        this.stockLevel = stockLevel;
+        this.unitsPerCarton = unitsPerCarton;
+        this.currentStock = currentStock;
         if (discountCode == null || discountCode.isBlank()) {
             this.discountCode = "";
         }
         this.isCarton = isCarton;
     }
 
-    public String getName() {
-        return name;
+    public int getRequiredStock() {
+        if (requiredStock > currentStock) {
+            return requiredStock - currentStock;
+        } else {
+            return 0;
+        }
     }
 
-    public BigDecimal getPrice() {
-        return price;
+    /**
+     * Returns the number of cartons needed to reach the product's required stock level. If the value has not been set to
+     * a positive value, the amount will be calculated using carton size and current/required stock levels.
+     * @return the number of cartons needed to reach the product's required stock level
+     */
+    public int getRequiredCartons() {
+        if (requiredCartons > 0) {
+            return requiredCartons;
+        } else if (unitsPerCarton == 0){
+            return getRequiredStock();
+        } else {
+            return (int) Math.ceil(getRequiredStock() / (float) getUnitsPerCarton());
+        }
     }
 
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public int getUnit() {
-        return unit;
-    }
-
-    public void setUnit(int unit) {
-        this.unit = unit;
-    }
-
-    public BigDecimal getDrp() {
-        return drp;
-    }
-
-    public void setDrp(BigDecimal drp) {
-        this.drp = drp;
+    public void setRequiredCartons(int requiredCartons) {
+        this.requiredCartons = requiredCartons;
     }
 
     public void addStock(int amount) {
-        stockLevel = stockLevel + amount;
-    }
-
-    public int getStockLevel() {
-        return stockLevel;
-    }
-
-    public void setStockLevel(int stockLevel) {
-        this.stockLevel = stockLevel;
+        currentStock = currentStock + amount;
     }
 
     public boolean isCarton() {
         return isCarton;
-    }
-
-    public void setCarton(boolean carton) {
-        isCarton = carton;
-    }
-
-    public String getDiscountCode() {
-        return discountCode;
-    }
-
-    public void setDiscountCode(String discountCode) {
-        this.discountCode = discountCode;
     }
 
     @Override

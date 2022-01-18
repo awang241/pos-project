@@ -31,6 +31,57 @@ public class Persistence {
         return DriverManager.getConnection(getDBUrl(), null, GlobalData.getProperty(GlobalData.Key.DB_PASSWORD));
     }
 
+    public void saveOrder(Order order) {
+        String orderQuery = "INSERT INTO Orders (OrderDate, DeliverDate, Distributor, PaymentDate) VALUES (?, ?, ?, ?)";
+        String itemQuery = "INSERT INTO OrderItem (OrderID, Product, Qty, Price) VALUES (?, ?, ?, ?)";
+        try (Connection conn = createConnection();
+             PreparedStatement orderSt = conn.prepareStatement(orderQuery, Statement.RETURN_GENERATED_KEYS);
+             PreparedStatement itemSt = conn.prepareStatement(itemQuery)) {
+            conn.setAutoCommit(false);
+            orderSt.setDate(1, Date.valueOf(order.getOrderDate()));
+            orderSt.setDate(2, Date.valueOf(order.getDeliveryDate()));
+            orderSt.setString(3, order.getSupplierCode());
+            orderSt.setDate(4, Date.valueOf(order.getPaymentDate()));
+            orderSt.executeUpdate();
+            ResultSet keys = orderSt.getGeneratedKeys();
+            long orderID;
+            if (keys.next()) {
+                orderID = keys.getLong(1);
+            } else {
+                throw new SQLException("Could not return Order ID");
+            }
+            for (Product product: order.getItems()) {
+                itemSt.setLong(1, orderID);
+                itemSt.setString(2, product.getName());
+                itemSt.setInt(3, product.getRequiredCartons());
+                itemSt.setBigDecimal(4, product.getWholesalePrice());
+                itemSt.executeUpdate();
+            }
+            conn.commit();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Set<String> findAllSupplierCodes() {
+        String queryString = "Select SupplierID from Product group by SupplierID";
+        Set<String> suppliers = new HashSet<>();
+        try (Connection conn = createConnection();
+                PreparedStatement statement = conn.prepareStatement(queryString);
+                ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                String id = resultSet.getString("SupplierID");
+                if (id != null) {
+                    suppliers.add(resultSet.getString("SupplierID"));
+                }
+            }
+        } catch (SQLException e) {
+                e.printStackTrace();
+        }
+        return suppliers;
+    }
+
     public Optional<Product> findProductByBarcode(String barcode){
         String queryString = "Select * from Product where BarCode=? or BarCode2=?";
         ResultSet results;
@@ -49,6 +100,43 @@ public class Persistence {
             e.printStackTrace();
         }
         return Optional.empty();
+    }
+
+    public Set<Product> findProductBySupplier(String supplierCode){
+        String queryString;
+        if (supplierCode.equals(Order.ALL_SUPPLIERS)) {
+            queryString = "Select * from Product";
+        } else {
+            queryString = "Select * from Product where SupplierID=?";
+        }
+
+        ResultSet results;
+        Set<Product> products = new HashSet<>();
+        try (Connection conn = createConnection();
+             PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
+            if (!supplierCode.equals(Order.ALL_SUPPLIERS)) {
+                statement.setString(1, supplierCode);
+            }
+
+            results = statement.executeQuery();
+            while (results.next()) {
+                Product product = Product.builder()
+                        .name(results.getString("Product"))
+                        .retailPrice(results.getBigDecimal("RP"))
+                        .wholesalePrice(results.getBigDecimal("Price"))
+                        .unitsPerCarton(results.getInt("Unit"))
+                        .currentStock(results.getInt("Stock"))
+                        .requiredStock(results.getInt("StockLevel"))
+                        .supplierID(results.getString("SupplierID"))
+                        .isCarton(false)
+                        .build();
+                products.add(product);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return products;
     }
 
     public Set<Product> findSalesBetweenDates(LocalDateTime start, LocalDateTime end) {
@@ -110,9 +198,9 @@ public class Persistence {
         String queryString = "UPDATE Product SET Stock = ?, RP = ?, Unit = ?, DRP = ? WHERE Product = ?";
         try (Connection conn = createConnection();
                 PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
-            statement.setInt(1, product.getStockLevel());
-            statement.setBigDecimal(2, product.getPrice());
-            statement.setInt(3, product.getUnit());
+            statement.setInt(1, product.getCurrentStock());
+            statement.setBigDecimal(2, product.getRetailPrice());
+            statement.setInt(3, product.getUnitsPerCarton());
             if (product.getDrp().compareTo(BigDecimal.ZERO) > 0) {
                 statement.setBigDecimal(4, product.getDrp());
             } else {

@@ -39,7 +39,7 @@ public class TransactionItem {
      * @param quantity The quantity of the item
      */
     public TransactionItem(long id, Product product, int quantity) {
-        this(id, product.getName(), quantity, product.getDiscountCode(), product.getPrice());
+        this(id, product.getName(), quantity, product.getDiscountCode(), product.getRetailPrice());
     }
 
     public static TransactionItem createCashProduct(BigDecimal amount) {
