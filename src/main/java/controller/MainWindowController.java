@@ -12,6 +12,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.layout.BorderPane;
+import javafx.util.Callback;
 import model.Order;
 
 import java.io.IOException;
@@ -36,22 +37,20 @@ public class MainWindowController implements Initializable {
         try {
             persistence = new Persistence();
             persistence.findSalesByPeriod(2018, Period.MONTHLY);
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/POS.fxml"));
-            loader.setControllerFactory(param -> new POSController(persistence));
-            posScreen = loader.load();
 
-            loader = new FXMLLoader(getClass().getResource("/fxml/SalesReport.fxml"));
-            loader.setControllerFactory(param -> new SalesReportController(persistence));
-            generalReportScreen = loader.load();
-
-            loader = new FXMLLoader(getClass().getResource("/fxml/PeriodicSalesReport.fxml"));
-            loader.setControllerFactory(param -> new PeriodicSalesReportController(persistence));
-            periodicReportScreen = loader.load();
-
+            posScreen = loadNode(param -> new POSController(persistence), "/fxml/POS.fxml");
+            generalReportScreen = loadNode(param -> new GeneralSalesReportController(persistence), "/fxml/SalesReport.fxml");
+            periodicReportScreen = loadNode(param -> new PeriodicSalesReportController(persistence), "/fxml/PeriodicSalesReport.fxml");
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+    }
+
+    public Node loadNode(Callback<Class<?>, Object> controllerFactory, String URL) throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource(URL));
+        loader.setControllerFactory(controllerFactory);
+        return loader.load();
     }
 
     public void loadPOS() {
@@ -79,6 +78,7 @@ public class MainWindowController implements Initializable {
                             mainBorderPane.setCenter(null);
                         }
                     }));
+                    mainBorderPane.setCenter(createOrderScreen);
                 }
 
             } catch (IOException e) {
@@ -87,7 +87,6 @@ public class MainWindowController implements Initializable {
                 alert.showAndWait();
             }
         }
-        mainBorderPane.setCenter(createOrderScreen);
     }
 
     public void showConfigDialog() {
@@ -115,5 +114,13 @@ public class MainWindowController implements Initializable {
         return orderDialog.showAndWait();
     }
 
+    public void loadViewOrders() {
+        try {
+            mainBorderPane.setCenter(loadNode((param -> new ViewOrdersController(persistence)), "/fxml/ViewOrders.fxml"));
+        } catch (IOException e) {
+            new Alert(Alert.AlertType.ERROR, e.getLocalizedMessage()).showAndWait();
+            e.printStackTrace();
+        }
+    }
 
 }

@@ -1,7 +1,13 @@
 package data;
 
 import java.io.*;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +35,8 @@ public class GlobalData {
     }
 
     private static final Properties properties = new Properties();
+    private static final String APP_PROPERTIES = "application.properties";
+    private static final URL JAR_PROPERTIES = GlobalData.class.getResource("application.properties");
 
     private static String encode(String string) {
         if (string == null) return null;
@@ -51,12 +59,23 @@ public class GlobalData {
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
-    public static void loadProperties() {
-        try (InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream("application.properties");) {
+    public static void createPropertiesFileIfNotExisting() throws IOException {
+        File filepath = new File(APP_PROPERTIES);
+        filepath.createNewFile();
+    }
+
+    public static void loadProperties() throws IOException {
+        String filepath;
+        if (Files.exists(Path.of("../", APP_PROPERTIES))) {
+            filepath = "../" + APP_PROPERTIES;
+        } else if (Files.exists(Path.of(APP_PROPERTIES))){
+            filepath = APP_PROPERTIES;
+        } else {
+            throw new FileNotFoundException("Could not find application.properties file.");
+        }
+
+        try (InputStream stream = new FileInputStream(filepath)) {
             properties.load(stream);
-        } catch (IOException | NullPointerException e){
-            e.printStackTrace();
-            System.exit(-1);
         }
     }
 
@@ -65,15 +84,9 @@ public class GlobalData {
         return key.equals(Key.DB_PASSWORD) ? decode(value): value;
     }
 
-    public static void setProperty(Key key, String value) throws IOException {
-        Map<Key, String> newProperty = new HashMap<>();
-        newProperty.put(key, value);
-        setProperties(newProperty);
-    }
-
     /**
-     * Sets all given key-string pairs as properties and saves them to the application.properties file. If the given
-     * string is null, that property will be deleted instead.
+     * Sets all given key-value pairs as properties and saves them to the application.properties file. If the given
+     * value is null, that property will be deleted instead.
      * @param newProperties
      * @throws IOException
      */
@@ -88,7 +101,7 @@ public class GlobalData {
             }
         }
         String rootPath = Thread.currentThread().getContextClassLoader().getResource("application.properties").getPath();
-        properties.store(new FileWriter(rootPath), null);
+        properties.store(new FileWriter(APP_PROPERTIES), null);
     }
 
     public static boolean shopDataDoesNotExist() {

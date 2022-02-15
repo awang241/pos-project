@@ -23,6 +23,7 @@
           <Menu mnemonicParsing="false" text="Orders">
                <items>
                   <MenuItem mnemonicParsing="false" onAction="#loadCreateOrder" text="Create Order" />
+                  <MenuItem mnemonicParsing="false" onAction="#loadViewOrders" text="View Orders" />
                </items>
           </Menu>
             <Menu mnemonicParsing="false" text="Options">

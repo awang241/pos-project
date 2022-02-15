@@ -9,11 +9,11 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefWidth="636.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.SalesReportController">
+<BorderPane prefWidth="636.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.GeneralSalesReportController">
    <top>
       <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="110.0" prefWidth="472.0" BorderPane.alignment="CENTER_LEFT">
          <children>
-            <Button layoutX="337.0" layoutY="47.0" mnemonicParsing="false" onMouseReleased="#loadSales" text="Filter">
+            <Button fx:id="filterButton" layoutX="337.0" layoutY="47.0" mnemonicParsing="false" onMouseReleased="#loadSales" text="Filter">
                <font>
                   <Font size="14.0" />
                </font></Button>
@@ -24,8 +24,8 @@
             </Label>
         <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="43.0" prefWidth="324.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="40.0">
                <children>
-                  <DatePicker fx:id="startDatePicker" layoutX="44.0" layoutY="4.0" prefHeight="25.0" prefWidth="110.0" AnchorPane.bottomAnchor="6.0" AnchorPane.leftAnchor="50.0" AnchorPane.topAnchor="6.0" />
-                  <DatePicker fx:id="endDatePicker" layoutX="206.0" layoutY="4.0" prefHeight="25.0" prefWidth="110.0" AnchorPane.bottomAnchor="6.0" AnchorPane.leftAnchor="210.0" AnchorPane.topAnchor="6.0" />
+                  <DatePicker fx:id="startDatePicker" editable="false" layoutX="44.0" layoutY="4.0" prefHeight="25.0" prefWidth="110.0" AnchorPane.bottomAnchor="6.0" AnchorPane.leftAnchor="50.0" AnchorPane.topAnchor="6.0" />
+                  <DatePicker fx:id="endDatePicker" editable="false" layoutX="206.0" layoutY="4.0" prefHeight="25.0" prefWidth="110.0" AnchorPane.bottomAnchor="6.0" AnchorPane.leftAnchor="210.0" AnchorPane.topAnchor="6.0" />
                   <Label layoutX="183.0" layoutY="8.0" text="To:" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="183.0" AnchorPane.topAnchor="10.0">
                      <font>
                         <Font size="14.0" />

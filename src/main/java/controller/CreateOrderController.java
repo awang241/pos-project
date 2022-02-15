@@ -1,5 +1,6 @@
 package controller;
 
+import controller.OrderTableController;
 import data.Persistence;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
@@ -7,56 +8,34 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.Event;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.layout.BorderPane;
 import javafx.util.converter.IntegerStringConverter;
 import model.Order;
+import model.OrderItem;
 import model.Product;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.ResourceBundle;
+import java.util.*;
 
 public class CreateOrderController implements Initializable {
 
     @FXML
-    private Order order;
-    @FXML
-    private Label supplierLabel;
-    @FXML
-    private Label orderDateLabel;
-    @FXML
-    private Label paymentDateLabel;
-    @FXML
-    private Label deliveryDateLabel;
-    @FXML
-    private Label totalPriceLabel;
-    @FXML
-    private TableView<Product> productTable;
-    @FXML
-    private TableColumn<Product, String> productColumn;
-    @FXML
-    private TableColumn<Product, String> codeColumn;
-    @FXML
-    private TableColumn<Product, Integer> reqStockColumn;
-    @FXML
-    private TableColumn<Product, Integer> currentStockColumn;
-    @FXML
-    private TableColumn<Product, Integer> qtyColumn;
-    @FXML
-    private TableColumn<Product, String> priceColumn;
-    @FXML
-    private TableColumn<Product, String> totalCostColumn;
+    private BorderPane orderPane;
 
+    private final Order order;
     private final Persistence persistence;
-    private ObservableList<Product> products;
     private final BooleanProperty deleteFlag = new SimpleBooleanProperty(false);
+    private OrderTableController orderTableController;
 
     public CreateOrderController(Persistence persistence, Order config) {
         this.persistence = persistence;
@@ -65,36 +44,24 @@ public class CreateOrderController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        supplierLabel.setText(order.getSupplierCode());
-        orderDateLabel.setText(order.getOrderDate().toString());
-        deliveryDateLabel.setText(order.getDeliveryDate().toString());
-        paymentDateLabel.setText(order.getPaymentDate().toString());
-
-        productColumn.setCellValueFactory((data) -> Bindings.createStringBinding(() -> data.getValue().getName()));
-        reqStockColumn.setCellValueFactory((data) -> Bindings.createIntegerBinding(() -> data.getValue().getRequiredStock()).asObject());
-        currentStockColumn.setCellValueFactory((data) -> Bindings.createIntegerBinding(() -> data.getValue().getCurrentStock()).asObject());
-        priceColumn.setCellValueFactory((data) -> Bindings.createStringBinding(() -> {
-            BigDecimal price = data.getValue().getWholesalePrice().setScale(2, RoundingMode.HALF_UP);
-            return price.toString();
-        }));
-        totalCostColumn.setCellValueFactory((data) -> Bindings.createStringBinding(() -> {
-            Product product = data.getValue();
-            BigDecimal totalCost = product.getWholesalePrice().multiply(new BigDecimal(product.getRequiredCartons()));
-            return totalCost.setScale(2, RoundingMode.HALF_UP).toString();
-        }));
-        qtyColumn.setCellValueFactory((data) -> Bindings.createIntegerBinding(() -> data.getValue().getRequiredCartons()).asObject());
-        qtyColumn.setCellFactory((col) -> new TextFieldTableCell<>(new IntegerStringConverter()));
-        qtyColumn.setOnEditCommit((event -> event.getRowValue().setRequiredCartons(event.getNewValue())));
-
-        products = FXCollections.observableArrayList(persistence.findProductBySupplier(order.getSupplierCode()));
-        productTable.setItems(products);
+        try {
+            List<Product> products = new ArrayList<>(persistence.findProductBySupplier(order.getSupplierCode()));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/OrderTable.fxml"));
+            loader.setControllerFactory((controller) -> new OrderTableController(products, order, true, true));
+            Node orderTable = loader.load();
+            orderTableController = loader.getController();
+            orderPane.setCenter(orderTable);
+        } catch (IOException e) {
+            new Alert(Alert.AlertType.ERROR, e.getLocalizedMessage()).showAndWait();
+            e.printStackTrace();
+        }
     }
 
     public ObservableValue<Boolean> getDeleteFlag() {
         return deleteFlag;
     }
 
-    public void delete() {
+    public void delete(Event event) {
         Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure you want to delete this order? your changes will not be saved.");
         Optional<ButtonType> returnType = confirmDialog.showAndWait();
         if (returnType.isPresent() && returnType.get().equals(ButtonType.OK)) {
@@ -107,9 +74,11 @@ public class CreateOrderController implements Initializable {
      */
     public void saveOrder() {
         try {
+            List<Product> products = orderTableController.getProducts();
             for (Product product: products) {
                 if (product.getRequiredCartons() > 0) {
-                    order.addItems(product);
+                    OrderItem item = new OrderItem(product.getRequiredCartons(), -1, product.getWholesalePrice(), product.getName());
+                    order.addItem(item);
                 }
             }
             persistence.saveOrder(order);

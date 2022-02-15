@@ -8,6 +8,7 @@ import javafx.scene.control.DialogPane;
 import javafx.stage.Stage;
 
 import java.awt.event.ActionEvent;
+import java.io.IOException;
 import java.util.Optional;
 
 
@@ -19,7 +20,13 @@ public class PosApp extends javafx.application.Application {
         Scene scene;
         stage.setTitle("POS");
 
-        GlobalData.loadProperties();
+        try {
+            GlobalData.createPropertiesFileIfNotExisting();
+            GlobalData.loadProperties();
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
 
         if (GlobalData.shopDataDoesNotExist()) {
             loader = new FXMLLoader(getClass().getResource("fxml/dialog/ConfigDialog.fxml"));

@@ -31,12 +31,47 @@ public class Persistence {
         return DriverManager.getConnection(getDBUrl(), null, GlobalData.getProperty(GlobalData.Key.DB_PASSWORD));
     }
 
+    public List<Order> findAllOrders() {
+        String orderQuery = "SELECT * FROM Orders";
+        String itemQuery = "SELECT * FROM OrderItem WHERE OrderID = ?";
+        try (Connection conn = createConnection();
+                PreparedStatement orderSt = conn.prepareStatement(orderQuery);
+                PreparedStatement itemSt = conn.prepareStatement(itemQuery)) {
+            ResultSet resultSet = orderSt.executeQuery();
+            ResultSet itemSet;
+            List<Order> orders = new ArrayList<>();
+            while (resultSet.next()) {
+                long orderID = resultSet.getLong("OrderID");
+                Order order = Order.builder()
+                        .id(orderID)
+                        .orderDate(resultSet.getDate("OrderDate").toLocalDate())
+                        .deliveryDate(resultSet.getDate("DeliverDate").toLocalDate())
+                        .paymentDate(resultSet.getDate("PaymentDate").toLocalDate())
+                        .supplierCode(resultSet.getString("Distributor"))
+                        .build();
+                List<OrderItem> items = new ArrayList<>();
+                itemSt.setLong(1, orderID);
+                itemSet = itemSt.executeQuery();
+                while (itemSet.next()) {
+                    items.add(new OrderItem(itemSet.getInt("Qty"), orderID, itemSet.getBigDecimal("Price"), itemSet.getString("Product")));
+                }
+                itemSet.close();
+                order.addItems(items);
+                orders.add(order);
+            }
+            return orders;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public void saveOrder(Order order) {
         String orderQuery = "INSERT INTO Orders (OrderDate, DeliverDate, Distributor, PaymentDate) VALUES (?, ?, ?, ?)";
         String itemQuery = "INSERT INTO OrderItem (OrderID, Product, Qty, Price) VALUES (?, ?, ?, ?)";
         try (Connection conn = createConnection();
-             PreparedStatement orderSt = conn.prepareStatement(orderQuery, Statement.RETURN_GENERATED_KEYS);
-             PreparedStatement itemSt = conn.prepareStatement(itemQuery)) {
+                PreparedStatement orderSt = conn.prepareStatement(orderQuery, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement itemSt = conn.prepareStatement(itemQuery)) {
             conn.setAutoCommit(false);
             orderSt.setDate(1, Date.valueOf(order.getOrderDate()));
             orderSt.setDate(2, Date.valueOf(order.getDeliveryDate()));
@@ -50,11 +85,11 @@ public class Persistence {
             } else {
                 throw new SQLException("Could not return Order ID");
             }
-            for (Product product: order.getItems()) {
+            for (OrderItem item: order.getItems()) {
                 itemSt.setLong(1, orderID);
-                itemSt.setString(2, product.getName());
-                itemSt.setInt(3, product.getRequiredCartons());
-                itemSt.setBigDecimal(4, product.getWholesalePrice());
+                itemSt.setString(2, item.getProduct());
+                itemSt.setInt(3, item.getQuantity());
+                itemSt.setBigDecimal(4, item.getPrice());
                 itemSt.executeUpdate();
             }
             conn.commit();
@@ -68,8 +103,8 @@ public class Persistence {
         String queryString = "Select SupplierID from Product group by SupplierID";
         Set<String> suppliers = new HashSet<>();
         try (Connection conn = createConnection();
-                PreparedStatement statement = conn.prepareStatement(queryString);
-                ResultSet resultSet = statement.executeQuery()) {
+             PreparedStatement statement = conn.prepareStatement(queryString);
+             ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
                 String id = resultSet.getString("SupplierID");
                 if (id != null) {
@@ -77,7 +112,7 @@ public class Persistence {
                 }
             }
         } catch (SQLException e) {
-                e.printStackTrace();
+            e.printStackTrace();
         }
         return suppliers;
     }
@@ -126,7 +161,7 @@ public class Persistence {
                         .wholesalePrice(results.getBigDecimal("Price"))
                         .unitsPerCarton(results.getInt("Unit"))
                         .currentStock(results.getInt("Stock"))
-                        .requiredStock(results.getInt("StockLevel"))
+                        .weeklyNeededStock(results.getInt("StockLevel"))
                         .supplierID(results.getString("SupplierID"))
                         .isCarton(false)
                         .build();
@@ -139,27 +174,47 @@ public class Persistence {
         return products;
     }
 
-    public Set<Product> findSalesBetweenDates(LocalDateTime start, LocalDateTime end) {
-        String queryString = "SELECT Product.Product, Product.RP, SUM(TransactionItem.Qty) AS Qty, SUM(TransactionItem.Price * Qty) As Sales " +
+    public void updateProduct(Product product) throws SQLException {
+        String queryString = "UPDATE Product SET Stock = ?, RP = ?, Unit = ?, DRP = ? WHERE Product = ?";
+        try (Connection conn = createConnection();
+             PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
+            statement.setInt(1, product.getCurrentStock());
+            statement.setBigDecimal(2, product.getRetailPrice());
+            statement.setInt(3, product.getUnitsPerCarton());
+            if (product.getDrp().compareTo(BigDecimal.ZERO) > 0) {
+                statement.setBigDecimal(4, product.getDrp());
+            } else {
+                statement.setNull(4, Types.FLOAT);
+            }
+            statement.setString(5, product.getName());
+            statement.executeUpdate();
+        }
+    }
+
+    public List<Sales> findSalesBetweenDates(LocalDateTime start, LocalDateTime end) {
+        String queryString = "SELECT Product.Product, Product.RP, SUM(TransactionItem.Qty) AS Qty, " +
+            "SUM(TransactionItem.Price * Qty) As Sales, Price / Unit AS BuyPrice " +
                 "FROM ((TransactionItem " +
                     "INNER JOIN (SELECT * FROM Transactions WHERE Date BETWEEN ? AND ?) As T " +
                     "ON T.ID = TransactionItem.TransactionID) " +
                         "INNER JOIN Product ON Product.Product = TransactionItem.Product) " +
-                "GROUP BY Product.Product, Product.RP";
+                "GROUP BY Product.Product, Product.RP, BuyPrice";
         try (Connection conn = createConnection();
                 PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
             statement.setDate(1, Date.valueOf(start.toLocalDate()));
             statement.setDate(2, Date.valueOf(end.toLocalDate()));
             ResultSet results = statement.executeQuery();
 
-            Set<Product> products = new HashSet<>();
+            List<Sales> salesList = new ArrayList<>();
             while (results.next()) {
-                Product product = new Product(results.getString("Product"), results.getBigDecimal("RP"),
-                        results.getBigDecimal("Sales"), 0, results.getInt("Qty"), "",
-                        false);
-                products.add(product);
+                salesList.add(Sales.builder().productName(results.getString("Product"))
+                        .buyPrice(results.getBigDecimal("BuyPrice"))
+                        .quantity(results.getInt("Qty"))
+                        .totalSales( results.getBigDecimal("Sales"))
+                        .sellPrice(results.getBigDecimal("RP"))
+                        .build());
             }
-            return products;
+            return salesList;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -192,23 +247,6 @@ public class Persistence {
             e.printStackTrace();
         }
         return null;
-    }
-
-    public void updateProduct(Product product) throws SQLException {
-        String queryString = "UPDATE Product SET Stock = ?, RP = ?, Unit = ?, DRP = ? WHERE Product = ?";
-        try (Connection conn = createConnection();
-                PreparedStatement statement = conn.prepareStatement(queryString, Statement.NO_GENERATED_KEYS)) {
-            statement.setInt(1, product.getCurrentStock());
-            statement.setBigDecimal(2, product.getRetailPrice());
-            statement.setInt(3, product.getUnitsPerCarton());
-            if (product.getDrp().compareTo(BigDecimal.ZERO) > 0) {
-                statement.setBigDecimal(4, product.getDrp());
-            } else {
-                statement.setNull(4, Types.FLOAT);
-            }
-            statement.setString(5, product.getName());
-            statement.executeUpdate();
-        }
     }
 
     public Optional<Transaction> findLastInsertedTransaction() {

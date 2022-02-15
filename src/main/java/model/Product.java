@@ -6,7 +6,6 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.util.Objects;
-import java.util.Optional;
 
 @Builder
 @Getter
@@ -19,9 +18,9 @@ public class Product {
     private BigDecimal drp;
     private int unitsPerCarton;
     private int currentStock;
-    private int requiredStock;
+    private int weeklyNeededStock;
     @Builder.Default
-    private int requiredCartons = 0;
+    private int requiredCartons = -1;
     private String discountCode;
     private String supplierID;
     private boolean isCarton;
@@ -39,8 +38,8 @@ public class Product {
     }
 
     public int getRequiredStock() {
-        if (requiredStock > currentStock) {
-            return requiredStock - currentStock;
+        if (weeklyNeededStock > currentStock) {
+            return weeklyNeededStock - currentStock;
         } else {
             return 0;
         }
@@ -52,12 +51,13 @@ public class Product {
      * @return the number of cartons needed to reach the product's required stock level
      */
     public int getRequiredCartons() {
-        if (requiredCartons > 0) {
+        if (requiredCartons >= 0) {
             return requiredCartons;
         } else if (unitsPerCarton == 0){
             return getRequiredStock();
         } else {
-            return (int) Math.ceil(getRequiredStock() / (float) getUnitsPerCarton());
+            int a = (int) Math.ceil(getRequiredStock() / (float) getUnitsPerCarton());
+            return  a;
         }
     }
 

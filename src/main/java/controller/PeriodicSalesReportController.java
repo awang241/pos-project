@@ -90,7 +90,7 @@ public class PeriodicSalesReportController implements Initializable {
             if (Period.MONTHLY.equals(period)) {
                 columnTitle = Month.of(index).toString();
             } else {
-                columnTitle = String.format("Week %d ()", index);
+                columnTitle = String.format("Week %d", index);
             }
             TableColumn<String, Integer> column = new TableColumn<>(columnTitle);
             column.setMinWidth(120);

@@ -143,7 +143,7 @@ public class POSController implements Initializable {
                 changePane.setVisible(false);
             }
 
-            TransactionItem newItem = new TransactionItem(items.size(), product.getName(), quantity, product.getDiscountCode(), product.getRetailPrice());
+
             Optional<TransactionItem> results = items.stream()
                     .filter(item -> item.getProductName().equals(product.getName()))
                     .findAny();
@@ -154,6 +154,7 @@ public class POSController implements Initializable {
                     results.get().setPrice(product.getDrp());
                 }
             } else {
+                TransactionItem newItem = new TransactionItem(items.size(), product.getName(), quantity, product.getDiscountCode(), product.getRetailPrice());
                 items.add(newItem);
                 productIndex.add(product);
             }
@@ -177,21 +178,25 @@ public class POSController implements Initializable {
         try {
             persistence.saveTransaction(transaction);
             for (TransactionItem item: items) {
-                int refundMultiplier = type == PaymentType.REFUND ? 1: -1;
-                Product product = productIndex.stream()
-                                .filter(prod -> prod.getName().equals(item.getProductName()))
-                                .findAny().orElseThrow();
-                product.addStock(refundMultiplier * item.getQuantity());
-                persistence.updateProduct(product);
+                if (!item.getProductName().equals(TransactionItem.CASH_OUT) && !item.getProductName().equals(TransactionItem.UNCODED)) {
+                    int refundMultiplier = type == PaymentType.REFUND ? 1: -1;
+                    Product product = productIndex.stream()
+                            .filter(prod -> prod.getName().equals(item.getProductName()))
+                            .findAny().orElseThrow();
+                    product.addStock(refundMultiplier * item.getQuantity());
+                    persistence.updateProduct(product);
+                }
             }
 
         } catch (SQLException | NoSuchElementException e) {
             Dialog<ButtonType> dialog = new Alert(Alert.AlertType.WARNING);
             dialog.setContentText("Error recording transaction");
             dialog.showAndWait();
+            e.printStackTrace();
         }
     }
 
+    @FXML
     public void cashButtonHandler() {
         if (!items.isEmpty()) {
             if (completeTransaction(PaymentType.CASH)) {
